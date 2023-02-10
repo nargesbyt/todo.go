@@ -9,25 +9,20 @@ import (
 
 var ErrTaskNotFound = errors.New("task not found")
 
-type Tasks struct {
+type Tasks interface {
+	Create(title string) (entity.Task, error)
+	DisplayTask(id int64) (entity.Task, error)
+	Find(title string, status string) ([]entity.Task, error)
+	Update(id int64, title string, status string) (entity.Task, error)
+	Delete(id int64) error
+}
+
+type tasks struct {
 	db *gorm.DB
 }
 
-/*func (t *Tasks) Init() error {
-	sts := `
-	CREATE TABLE IF NOT EXISTS tasks
-	(id INTEGER PRIMARY KEY, title TEXT NOT NULL , status TEXT NOT NULL DEFAULT "pending",created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, finished_at TIMESTAMP);
-	`
-	_, err := t.db.Exec(sts)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}*/
-
-func NewTasks(db *gorm.DB) (*Tasks, error) {
-	t := &Tasks{db: db}
+func NewTasks(db *gorm.DB) (Tasks, error) {
+	t := &tasks{db: db}
 
 	//err := t.Init()
 	/*if err != nil {
@@ -37,7 +32,7 @@ func NewTasks(db *gorm.DB) (*Tasks, error) {
 	return t, nil
 }
 
-func (t *Tasks) Create(title string) (entity.Task, error) {
+func (t *tasks) Create(title string) (entity.Task, error) {
 	task := entity.Task{
 		Title:     title,
 		Status:    "pending",
@@ -51,7 +46,7 @@ func (t *Tasks) Create(title string) (entity.Task, error) {
 
 }
 
-func (t *Tasks) DisplayTask(id int64) (entity.Task, error) {
+func (t *tasks) DisplayTask(id int64) (entity.Task, error) {
 	var task entity.Task
 	tx := t.db.First(&task, id)
 	if tx.Error != nil {
@@ -64,7 +59,7 @@ func (t *Tasks) DisplayTask(id int64) (entity.Task, error) {
 
 }
 
-func (t *Tasks) Find(title string, status string) ([]entity.Task, error) {
+func (t *tasks) Find(title string, status string) ([]entity.Task, error) {
 	var tasks []entity.Task
 
 	tx := t.db.Where(&entity.Task{Title: title, Status: status}).Find(&tasks)
@@ -75,7 +70,7 @@ func (t *Tasks) Find(title string, status string) ([]entity.Task, error) {
 	return tasks, nil
 }
 
-func (t *Tasks) Update(id int64, title string, status string) (entity.Task, error) {
+func (t *tasks) Update(id int64, title string, status string) (entity.Task, error) {
 	task := entity.Task{}
 	t.db.First(&task, id)
 	task.Title = title
@@ -88,29 +83,11 @@ func (t *Tasks) Update(id int64, title string, status string) (entity.Task, erro
 
 }
 
-func (t *Tasks) Delete(id int64) error {
+func (t *tasks) Delete(id int64) error {
 	var task entity.Task
 	tx := t.db.Delete(&task, id)
 	if tx.Error != nil {
 		return tx.Error
 	}
 	return nil
-	//	stm, err := t.db.Prepare("DELETE FROM tasks WHERE id = ?")
-	//	if err != nil {
-	//		return err
-	//	}
-	//	defer stm.Close()
-	//	res, err := stm.Exec(id)
-	//
-	//	if err != nil {
-	//		return err
-	//	}
-	//	n, err := res.RowsAffected()
-	//	if err != nil {
-	//		return err
-	//	}
-	//	if n == 0 {
-	//		return ErrTaskNotFound
-	//	}
-	//return nil
 }

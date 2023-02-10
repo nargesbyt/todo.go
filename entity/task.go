@@ -6,7 +6,7 @@ import (
 )
 
 type Task struct {
-	ID         int64 `gorm:"primaryKey"`
+	ID         int64 `gorm:"column : id ;primaryKey"`
 	Title      string
 	Status     string
 	CreatedAt  time.Time `gorm:"autoCreateTime"`

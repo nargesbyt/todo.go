@@ -6,10 +6,9 @@ import (
 )
 
 func NewSqlite(dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	conn, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
-
-	return db, nil
+	return conn, nil
 }

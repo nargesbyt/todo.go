@@ -10,7 +10,7 @@ import (
 )
 
 type Task struct {
-	TasksRepository *repository.Tasks
+	TasksRepository repository.Tasks
 }
 
 func (t Task) List(c *gin.Context) {
