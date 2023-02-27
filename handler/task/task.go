@@ -17,7 +17,7 @@ func (t Task) List(c *gin.Context) {
 	tasks, err := t.TasksRepository.Find(c.Query("title"), c.Query("status"))
 	if err != nil {
 		log.Println(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, handler.NewProblem(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
 		return
 	}
 	c.JSON(http.StatusOK, tasks)

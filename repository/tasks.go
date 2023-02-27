@@ -23,12 +23,6 @@ type tasks struct {
 
 func NewTasks(db *gorm.DB) (Tasks, error) {
 	t := &tasks{db: db}
-
-	//err := t.Init()
-	/*if err != nil {
-		return nil, err
-	}*/
-
 	return t, nil
 }
 
