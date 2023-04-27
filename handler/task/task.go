@@ -3,7 +3,9 @@ package task
 import (
 	"awesomeProject/handler"
 	"awesomeProject/repository"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/google/jsonapi"
 	"log"
 	"net/http"
 	"strconv"
@@ -13,14 +15,41 @@ type Task struct {
 	TasksRepository repository.Tasks
 }
 
+/*func jsonapiMeta() *jsonapi.Meta{
+	return &jsonapi.Meta{
+		"details":
+			"totalPage": totalPages
+	}
+
+
+}*/
+
 func (t Task) List(c *gin.Context) {
-	tasks, err := t.TasksRepository.Find(c.Query("title"), c.Query("status"))
+
+	pageNumber, _ := strconv.Atoi(c.Query(jsonapi.QueryParamPageNumber))
+	limit, _ := strconv.Atoi(c.Query(jsonapi.QueryParamPageLimit))
+
+	tasks, err := t.TasksRepository.Find(c.Query("title"), c.Query("status"), pageNumber, limit)
+	fmt.Println("tasks are: ", tasks)
 	if err != nil {
 		log.Println(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, handler.NewProblem(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
 		return
 	}
-	c.JSON(http.StatusOK, tasks)
+	var dtoTasks []*Response
+	for _, task := range tasks {
+		resp := Response{}
+		resp.FromEntity(*task)
+		dtoTasks = append(dtoTasks, &resp)
+
+	}
+	//fmt.Println(dtoTasks)
+	c.Header("Content-Type", jsonapi.MediaType)
+
+	if err := jsonapi.MarshalPayload(c.Writer, dtoTasks); err != nil {
+		log.Fatal(err)
+	}
+	//c.JSON(http.StatusOK, tasks)
 
 }
 func (t Task) DisplayTasks(c *gin.Context) {
@@ -43,7 +72,11 @@ func (t Task) DisplayTasks(c *gin.Context) {
 	}
 	resp := Response{}
 	resp.FromEntity(task)
-	c.JSON(http.StatusOK, resp)
+	c.Header("Content-Type", jsonapi.MediaType)
+	if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
+		log.Fatal(err)
+	}
+	//c.JSON(http.StatusOK, resp)
 
 }
 func (t Task) AddTask(c *gin.Context) {
@@ -54,7 +87,9 @@ func (t Task) AddTask(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnprocessableEntity)
 		return
 	}
-	task, err := t.TasksRepository.Create(cRequest.Title)
+	userId, _ := c.Get("userId")
+
+	task, err := t.TasksRepository.Create(cRequest.Title, userId.(int64))
 	if err != nil {
 		log.Println(err)
 		c.AbortWithStatus(500)
@@ -62,7 +97,12 @@ func (t Task) AddTask(c *gin.Context) {
 	}
 	resp := Response{}
 	resp.FromEntity(task)
-	c.JSON(http.StatusCreated, resp)
+	c.Header("Content-Type", jsonapi.MediaType)
+	if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
+		log.Fatal(err)
+	}
+
+	//c.JSON(http.StatusCreated, resp)
 
 }
 

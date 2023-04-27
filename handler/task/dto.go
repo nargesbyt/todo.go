@@ -2,6 +2,7 @@ package task
 
 import (
 	"awesomeProject/entity"
+	"awesomeProject/handler/user"
 	"time"
 )
 
@@ -13,11 +14,12 @@ type UpdateRequest struct {
 	Status string `json:"status"`
 }
 type Response struct {
-	ID         int64     `json:"id"`
-	Title      string    `json:"title"`
-	Status     string    `json:"status"`
-	CreatedAt  time.Time `json:"created_at"`
-	FinishedAt time.Time `json:"finished_at"`
+	ID         int64          `json:"id" jsonapi:"primary,tasks"`
+	Title      string         `json:"title" jsonapi:"attr,title"`
+	Status     string         `json:"status" jsonapi:"attr,status"`
+	CreatedAt  time.Time      `json:"created_at" jsonapi:"attr,created_at"`
+	FinishedAt time.Time      `json:"finished_at" jsonapi:"attr,finished_at"`
+	User       *user.Response `jsonapi:"relation,user"`
 }
 
 func (r *Response) FromEntity(task entity.Task) {
@@ -26,5 +28,8 @@ func (r *Response) FromEntity(task entity.Task) {
 	r.Status = task.Status
 	r.CreatedAt = task.CreatedAt
 	r.FinishedAt = task.FinishedAt.Time
+	user := user.Response{}
+	user.FromEntity(task.User)
+	r.User = &user
 
 }

@@ -3,53 +3,77 @@ package main
 import (
 	"awesomeProject/database"
 	"awesomeProject/handler/task"
+	"awesomeProject/handler/user"
 	"awesomeProject/repository"
+	"encoding/base64"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
+	"net/http"
+	"strings"
 )
 
-/*func seq(result chan bool) {
-	for i := 1; i < 100; i++ {
-		println(i)
-		//time.Sleep(time.Second * 1)
+func BasicAuth(usersRepository repository.Users) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authz := c.GetHeader("Authorization")
+
+		splits := strings.Split(authz, " ")
+
+		if splits[0] != "Basic" {
+			fmt.Println(authz)
+			c.Next()
+			return
+		}
+		userPass, err := base64.StdEncoding.DecodeString(splits[1])
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		splitedUserPass := strings.Split(string(userPass), ":")
+		user, err := usersRepository.GetUserByUsername(splitedUserPass[0])
+		if err != nil {
+			c.AbortWithError(http.StatusUnauthorized, err)
+			return
+		}
+		if err := user.CheckPassword(splitedUserPass[1]); err != nil {
+			c.AbortWithError(http.StatusUnauthorized, err)
+			return
+		}
+		c.Set("userId", user.ID)
+		//c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), "user_id", user.ID))
+		c.Next()
 
 	}
-	result <- true
 }
-
-func main() {
-	result := make(chan bool, 1)
-	go seq(result)
-	<-result
-	log.Println("success")
-
-}*/
 
 func main() {
 	db, err := database.NewSqlite("todo.db")
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	repo, err := repository.NewTasks(db)
 	if err != nil {
 		log.Fatal("Init tasks table ", err)
 	}
 	//repo.Init()
-
+	userRepository, err := repository.NewUser(db)
+	if err != nil {
+		log.Fatal("Init users table", err)
+	}
 	th := task.Task{TasksRepository: repo}
-	//http.Handle("/tasks/", th)
+	uh := user.User{UsersRepository: userRepository}
 
-	//err = http.ListenAndServe(":8080", nil)
-	//if err != nil {
-	//	log.Fatal("ListenAndServe: ", err)
-	//}
 	r := gin.Default()
 	r.GET("/tasks", th.List)
 	r.GET("/tasks/:id", th.DisplayTasks)
-	r.POST("/tasks", th.AddTask)
-	r.PATCH("/tasks/:id", th.Update)
-	r.DELETE("/tasks/:id", th.DeleteTask)
-	r.Run(":8080")
+	r.POST("/tasks", BasicAuth(userRepository), th.AddTask)
+	r.PATCH("/tasks/:id", BasicAuth(userRepository), th.Update)
+	r.DELETE("/tasks/:id", BasicAuth(userRepository), th.DeleteTask)
 
+	r.POST("/users", uh.Create)
+	r.GET("/users", uh.ListUsers)
+	r.GET("/users/:id", uh.Get)
+	r.PATCH("/users/:id", uh.UpdateUsers)
+	r.DELETE("/users/:id", uh.Delete)
+	r.Run(":8080")
 }

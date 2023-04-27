@@ -10,9 +10,9 @@ import (
 var ErrTaskNotFound = errors.New("task not found")
 
 type Tasks interface {
-	Create(title string) (entity.Task, error)
+	Create(title string, userId int64) (entity.Task, error)
 	DisplayTask(id int64) (entity.Task, error)
-	Find(title string, status string) ([]entity.Task, error)
+	Find(title string, status string, page int, limit int) ([]*entity.Task, error)
 	Update(id int64, title string, status string) (entity.Task, error)
 	Delete(id int64) error
 }
@@ -26,13 +26,20 @@ func NewTasks(db *gorm.DB) (Tasks, error) {
 	return t, nil
 }
 
-func (t *tasks) Create(title string) (entity.Task, error) {
+func (t *tasks) Create(title string, userId int64) (entity.Task, error) {
+	user := entity.User{}
+	tx := t.db.First(&user, userId)
+	if tx.Error != nil {
+		return entity.Task{}, tx.Error
+	}
 	task := entity.Task{
 		Title:     title,
 		Status:    "pending",
 		CreatedAt: time.Now(),
+		UserID:    userId,
+		User:      user,
 	}
-	tx := t.db.Create(&task)
+	tx = t.db.Create(&task).Preload("User")
 	if tx.Error != nil {
 		return task, tx.Error
 	}
@@ -46,6 +53,7 @@ func (t *tasks) DisplayTask(id int64) (entity.Task, error) {
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {
 			return task, ErrTaskNotFound
+
 		}
 		return task, tx.Error
 	}
@@ -53,13 +61,19 @@ func (t *tasks) DisplayTask(id int64) (entity.Task, error) {
 
 }
 
-func (t *tasks) Find(title string, status string) ([]entity.Task, error) {
-	var tasks []entity.Task
-
-	tx := t.db.Where(&entity.Task{Title: title, Status: status}).Find(&tasks)
-
+func (t *tasks) Find(title string, status string, page int, limit int) ([]*entity.Task, error) {
+	var tasks []*entity.Task
+	var totalRows int64
+	tx := t.db.Model(&entity.Task{Title: title, Status: status}).Count(&totalRows)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+	//totalPages := int(math.Ceil(float64(totalRows) / float64(limit)))
+	//return db.Offset(pagination.GetOffset()).Limit(pagination.GetLimit()).Order(pagination.GetSort())
+	tx = t.db.Where(&entity.Task{Title: title, Status: status}).Offset((page - 1) * limit).Limit(limit).Find(&tasks)
 	if tx.Error != nil {
 		return tasks, tx.Error
+
 	}
 	return tasks, nil
 }
