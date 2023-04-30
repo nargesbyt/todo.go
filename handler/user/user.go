@@ -1,11 +1,12 @@
 package user
 
 import (
-	"awesomeProject/entity"
-	"awesomeProject/handler"
-	"awesomeProject/repository"
 	"github.com/gin-gonic/gin"
 	"github.com/google/jsonapi"
+	"github.com/nargesbyt/todo.go/entity"
+	"github.com/nargesbyt/todo.go/handler"
+	"github.com/nargesbyt/todo.go/internal/dto"
+	"github.com/nargesbyt/todo.go/repository"
 	"log"
 	"net/http"
 	"strconv"
@@ -24,7 +25,7 @@ func (u User) Create(c *gin.Context) {
 		return
 
 	}
-	createResponse := Response{}
+	createResponse := dto.User{}
 	user, err = u.UsersRepository.Create(user.Email, user.Password, user.Username)
 	createResponse.FromEntity(user)
 	if err != nil {
@@ -52,9 +53,9 @@ func (u User) ListUsers(c *gin.Context) {
 		return
 
 	}
-	var dtoUsers []*Response
+	var dtoUsers []*dto.User
 	for _, user := range users {
-		resp := Response{}
+		resp := dto.User{}
 		resp.FromEntity(*user)
 		dtoUsers = append(dtoUsers, &resp)
 	}
@@ -72,13 +73,13 @@ func (u User) UpdateUsers(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	uRequest := UpdateRequest{}
+	uRequest := dto.UserUpdateRequest{}
 	if err := c.BindJSON(&uRequest); err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusUnprocessableEntity)
 		return
 	}
-	resp := Response{}
+	resp := dto.User{}
 	updateResult, err := u.UsersRepository.UpdateUsers(id, uRequest.Username, uRequest.Email, uRequest.Password)
 	if err != nil {
 		log.Println(err)
@@ -128,7 +129,7 @@ func (u User) Get(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	resp := Response{}
+	resp := dto.User{}
 	resp.FromEntity(user)
 	c.Header("Content-Type", jsonapi.MediaType)
 	if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {

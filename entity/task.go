@@ -22,11 +22,11 @@ func (t Task) JSONAPIRelationshipLinks(relation string) *jsonapi.Links {
 }
 
 type Task struct {
-	ID         int64        `gorm:"column:id;primaryKey"jsonapi:"primary,tasks"`
-	Title      string       `jsonapi:"attr,title"`
-	Status     string       `jsonapi:"attr,status"`
-	CreatedAt  time.Time    `gorm:"autoCreateTime" jsonapi:"attr,created_at"`
-	FinishedAt sql.NullTime `jsonapi:"attr,finished_at"`
-	UserID     int64        `gorm:"column:user_id;foreignKey"jsonapi:"relation,user_id"`
+	ID         int64 `gorm:"column:id;primaryKey"`
+	Title      string
+	Status     string
+	CreatedAt  time.Time `gorm:"autoCreateTime"`
+	FinishedAt sql.NullTime
+	UserID     int64 `gorm:"column:user_id;foreignKey"`
 	User       User
 }

@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"awesomeProject/entity"
+	"github.com/nargesbyt/todo.go/entity"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -9,7 +9,7 @@ type MockTaskRepository struct {
 	mock.Mock
 }
 
-func (m *MockTaskRepository) Create(title string) (entity.Task, error) {
+func (m *MockTaskRepository) Create(title string, userId int64) (entity.Task, error) {
 	args := m.Called(title)
 	return args.Get(0).(entity.Task), args.Error(1)
 }
