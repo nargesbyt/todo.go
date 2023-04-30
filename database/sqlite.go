@@ -1,6 +1,7 @@
 package database
 
 import (
+	"awesomeProject/entity"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -13,6 +14,11 @@ func NewSqlite(dsn string) (*gorm.DB, error) {
 		return nil, err
 	}
 	DB = conn
-
+	DB.AutoMigrate(&entity.User{})
 	return conn, nil
 }
+
+/*func Migrate() {
+	DB.AutoMigrate(&entity.User{})
+	log.Println("Database migration completed")
+}*/

@@ -1,12 +1,11 @@
 package task
 
 import (
+	"awesomeProject/handler"
+	"awesomeProject/repository"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/jsonapi"
-	"github.com/nargesbyt/todo.go/handler"
-	"github.com/nargesbyt/todo.go/internal/dto"
-	"github.com/nargesbyt/todo.go/repository"
 	"log"
 	"net/http"
 	"strconv"
@@ -37,9 +36,9 @@ func (t Task) List(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, handler.NewProblem(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
 		return
 	}
-	var dtoTasks []*dto.Task
+	var dtoTasks []*Response
 	for _, task := range tasks {
-		resp := dto.Task{}
+		resp := Response{}
 		resp.FromEntity(*task)
 		dtoTasks = append(dtoTasks, &resp)
 
@@ -71,7 +70,7 @@ func (t Task) DisplayTasks(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	resp := dto.Task{}
+	resp := Response{}
 	resp.FromEntity(task)
 	c.Header("Content-Type", jsonapi.MediaType)
 	if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
@@ -82,7 +81,7 @@ func (t Task) DisplayTasks(c *gin.Context) {
 }
 func (t Task) AddTask(c *gin.Context) {
 	//task := entity.Task{}
-	cRequest := dto.TaskCreateRequest{}
+	cRequest := CreateRequest{}
 	if err := c.BindJSON(&cRequest); err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusUnprocessableEntity)
@@ -96,7 +95,7 @@ func (t Task) AddTask(c *gin.Context) {
 		c.AbortWithStatus(500)
 		return
 	}
-	resp := dto.Task{}
+	resp := Response{}
 	resp.FromEntity(task)
 	c.Header("Content-Type", jsonapi.MediaType)
 	if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
@@ -150,13 +149,13 @@ w.Write(delResult)*/
 
 func (t Task) Update(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	uRequest := dto.TaskUpdateRequest{}
+	uRequest := UpdateRequest{}
 	if err := c.BindJSON(&uRequest); err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusUnprocessableEntity)
 		return
 	}
-	resp := dto.Task{}
+	resp := Response{}
 	updateResult, err := t.TasksRepository.Update(id, uRequest.Title, uRequest.Status)
 	if err != nil {
 		log.Println(err)

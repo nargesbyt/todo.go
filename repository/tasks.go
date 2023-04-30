@@ -1,8 +1,8 @@
 package repository
 
 import (
+	"awesomeProject/entity"
 	"errors"
-	"github.com/nargesbyt/todo.go/entity"
 	"gorm.io/gorm"
 	"time"
 )
@@ -23,12 +23,6 @@ type tasks struct {
 
 func NewTasks(db *gorm.DB) (Tasks, error) {
 	t := &tasks{db: db}
-
-	err := db.AutoMigrate(&entity.Task{})
-	if err != nil {
-		return nil, err
-	}
-
 	return t, nil
 }
 

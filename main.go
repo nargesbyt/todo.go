@@ -1,12 +1,13 @@
 package main
 
 import (
+	"awesomeProject/database"
+	"awesomeProject/handler/task"
+	"awesomeProject/handler/user"
+	"awesomeProject/repository"
 	"encoding/base64"
+	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/nargesbyt/todo.go/database"
-	"github.com/nargesbyt/todo.go/handler/task"
-	"github.com/nargesbyt/todo.go/handler/user"
-	"github.com/nargesbyt/todo.go/repository"
 	"log"
 	"net/http"
 	"strings"
@@ -19,6 +20,7 @@ func BasicAuth(usersRepository repository.Users) gin.HandlerFunc {
 		splits := strings.Split(authz, " ")
 
 		if splits[0] != "Basic" {
+			fmt.Println(authz)
 			c.Next()
 			return
 		}
@@ -46,7 +48,6 @@ func BasicAuth(usersRepository repository.Users) gin.HandlerFunc {
 
 func main() {
 	db, err := database.NewSqlite("todo.db")
-
 	if err != nil {
 		log.Fatal(err)
 	}

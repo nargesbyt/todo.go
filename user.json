@@ -1,0 +1,31 @@
+{
+  "data": {
+    "type": "tasks",
+    "id": "34",
+    "attributes": {
+      "created_at": 1682529677,
+      "status": "pending",
+      "title": "Task fo footbal user"
+    },
+    "relationships": {
+      "user": {
+        "data": {
+          "type": "users",
+          "id": "6"
+        }
+      }
+    }
+  },
+  "included": [
+    {
+      "type": "users",
+      "id": "6",
+      "attributes": {
+        "created_at": 1682498526,
+        "email": "foo@gmail.com",
+        "updated_at": 1682498527,
+        "username": "footbal"
+      }
+    }
+  ]
+}

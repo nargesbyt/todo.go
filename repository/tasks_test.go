@@ -1,12 +1,12 @@
 package repository
 
 import (
+	"awesomeProject/database"
+	"awesomeProject/entity"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/nargesbyt/todo.go/database"
-	"github.com/nargesbyt/todo.go/entity"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/gorm"
