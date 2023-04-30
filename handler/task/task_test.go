@@ -1,13 +1,14 @@
 package task
 
 import (
-	"awesomeProject/entity"
-	"awesomeProject/handler"
-	"awesomeProject/repository"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/nargesbyt/todo.go/entity"
+	"github.com/nargesbyt/todo.go/handler"
+	"github.com/nargesbyt/todo.go/internal/dto"
+	"github.com/nargesbyt/todo.go/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"net/http"
@@ -20,7 +21,7 @@ func TestDisplayTasks(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	t.Run("Success", func(t *testing.T) {
 		var id int64 = 5
-		response := Response{}
+		response := dto.Task{}
 
 		mockTaskResp := entity.Task{
 			ID:        id,
@@ -127,9 +128,9 @@ func TestDisplayTasks(t *testing.T) {
 func TestAddTask(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	t.Run("Success", func(t *testing.T) {
-		//request := CreateRequest{}
+		//request := TaskCreateRequest{}
 		var title string = "task jadid"
-		response := Response{}
+		response := dto.Task{}
 		mockTaskResponse := entity.Task{
 			ID:        2,
 			Title:     title,
@@ -193,14 +194,14 @@ func TestUpdate(t *testing.T) {
 		var id int64 = 5
 		var title string = "new task"
 		var status string = "in progress"
-		updateResponse := Response{}
+		updateResponse := dto.Task{}
 		mockTaskResponse := entity.Task{
 			ID:        id,
 			Title:     title,
 			Status:    status,
 			CreatedAt: time.Now(),
 		}
-		updateRequest := UpdateRequest{
+		updateRequest := dto.TaskUpdateRequest{
 			Title:  title,
 			Status: status,
 		}
