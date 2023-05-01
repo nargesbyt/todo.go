@@ -60,7 +60,7 @@ func (t Task) DisplayTasks(c *gin.Context) {
 		return
 	}
 	userId, _ := c.Get("userId")
-	task, err := t.TasksRepository.DisplayTask(id, userId.(int64))
+	task, err := t.TasksRepository.Get(id)
 
 	if err != nil {
 		switch err {
@@ -70,26 +70,27 @@ func (t Task) DisplayTasks(c *gin.Context) {
 				c.AbortWithStatusJSON(http.StatusNotFound, handler.NewProblem(http.StatusNotFound, "Task not found"))
 				return
 			}
-		case repository.ErrUnauthorized:
-			{
-				log.Println(err)
-				c.AbortWithStatus(http.StatusUnauthorized)
-				return
-			}
 		default:
 			log.Println(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 	}
+
+	if task.UserID != userId {
+		log.Println(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	resp := dto.Task{}
 	resp.FromEntity(task)
 	c.Header("Content-Type", jsonapi.MediaType)
 	if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
 		log.Fatal(err)
 	}
-	//c.JSON(http.StatusOK, resp)
 }
+
 func (t Task) AddTask(c *gin.Context) {
 	//task := entity.Task{}
 	cRequest := dto.TaskCreateRequest{}
