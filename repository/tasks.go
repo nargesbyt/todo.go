@@ -8,13 +8,14 @@ import (
 )
 
 var ErrTaskNotFound = errors.New("task not found")
+var ErrUnauthorized = errors.New("permission is denied")
 
 type Tasks interface {
 	Create(title string, userId int64) (entity.Task, error)
-	DisplayTask(id int64) (entity.Task, error)
-	Find(title string, status string, page int, limit int) ([]*entity.Task, error)
-	Update(id int64, title string, status string) (entity.Task, error)
-	Delete(id int64) error
+	DisplayTask(id int64, userId int64) (entity.Task, error)
+	Find(title string, status string, page int, limit int, userId int64) ([]*entity.Task, error)
+	Update(id int64, title string, status string, userId int64) (entity.Task, error)
+	Delete(id int64, userId int64) error
 }
 
 type tasks struct {
@@ -53,30 +54,31 @@ func (t *tasks) Create(title string, userId int64) (entity.Task, error) {
 
 }
 
-func (t *tasks) DisplayTask(id int64) (entity.Task, error) {
+func (t *tasks) DisplayTask(id int64, userId int64) (entity.Task, error) {
 	var task entity.Task
-	tx := t.db.First(&task, id)
+	tx := t.db.Preload("User").First(&task, id)
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {
 			return task, ErrTaskNotFound
-
 		}
 		return task, tx.Error
+	}
+	if task.UserID != userId {
+		task = entity.Task{}
+		return task, ErrUnauthorized
 	}
 	return task, nil
 
 }
 
-func (t *tasks) Find(title string, status string, page int, limit int) ([]*entity.Task, error) {
+func (t *tasks) Find(title string, status string, page int, limit int, userId int64) ([]*entity.Task, error) {
 	var tasks []*entity.Task
 	var totalRows int64
-	tx := t.db.Model(&entity.Task{Title: title, Status: status}).Count(&totalRows)
+	tx := t.db.Model(&entity.Task{Title: title, Status: status, UserID: userId}).Count(&totalRows)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
-	//totalPages := int(math.Ceil(float64(totalRows) / float64(limit)))
-	//return db.Offset(pagination.GetOffset()).Limit(pagination.GetLimit()).Order(pagination.GetSort())
-	tx = t.db.Where(&entity.Task{Title: title, Status: status}).Offset((page - 1) * limit).Limit(limit).Find(&tasks)
+	tx = t.db.Preload("User").Where(&entity.Task{Title: title, Status: status, UserID: userId}).Offset((page - 1) * limit).Limit(limit).Find(&tasks)
 	if tx.Error != nil {
 		return tasks, tx.Error
 
@@ -84,9 +86,12 @@ func (t *tasks) Find(title string, status string, page int, limit int) ([]*entit
 	return tasks, nil
 }
 
-func (t *tasks) Update(id int64, title string, status string) (entity.Task, error) {
+func (t *tasks) Update(id int64, title string, status string, userId int64) (entity.Task, error) {
 	task := entity.Task{}
 	t.db.First(&task, id)
+	if task.UserID != userId {
+		return task, ErrUnauthorized
+	}
 	task.Title = title
 	task.Status = status
 	tx := t.db.Save(&task)
@@ -97,9 +102,13 @@ func (t *tasks) Update(id int64, title string, status string) (entity.Task, erro
 
 }
 
-func (t *tasks) Delete(id int64) error {
+func (t *tasks) Delete(id int64, userId int64) error {
 	var task entity.Task
-	tx := t.db.Delete(&task, id)
+	tx := t.db.First(&task, id)
+	if task.UserID != userId {
+		return ErrUnauthorized
+	}
+	tx = t.db.Delete(&task, id)
 	if tx.Error != nil {
 		return tx.Error
 	}

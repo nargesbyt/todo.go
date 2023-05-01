@@ -63,7 +63,7 @@ func main() {
 	uh := user.User{UsersRepository: userRepository}
 
 	r := gin.Default()
-	r.GET("/tasks", th.List)
+	r.GET("/tasks", BasicAuth(userRepository), th.List)
 	r.GET("/tasks/:id", th.DisplayTasks)
 	r.POST("/tasks", BasicAuth(userRepository), th.AddTask)
 	r.PATCH("/tasks/:id", BasicAuth(userRepository), th.Update)

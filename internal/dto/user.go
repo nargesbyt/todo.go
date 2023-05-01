@@ -11,7 +11,7 @@ type User struct {
 	Email     string    `jsonapi:"attr,email"`
 	CreatedAt time.Time `jsonapi:"attr,created_at"`
 	UpdatedAt time.Time `jsonapi:"attr,updated_at"`
-	Tasks     []*User   `jsonapi:"relation,tasks"`
+	Tasks     []*Task   `jsonapi:"relation,tasks"`
 }
 
 type UserUpdateRequest struct {
@@ -26,7 +26,11 @@ func (r *User) FromEntity(user entity.User) {
 	r.Email = user.Email
 	r.CreatedAt = user.CreatedAt
 	r.UpdatedAt = user.UpdatedAt
-	//tasks := task.User{}
-	//tasks.FromEntity(user.T)
-	//r.Tasks
+	tasks := []*Task{}
+	for _, task := range user.Tasks {
+		t := Task{}
+		t.FromEntity(task)
+		tasks = append(tasks, &t)
+	}
+	r.Tasks = tasks
 }

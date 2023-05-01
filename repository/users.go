@@ -52,7 +52,7 @@ func (u *users) Create(email string, password string, username string) (entity.U
 }
 func (u *users) GetUsers(email string, username string) ([]*entity.User, error) {
 	var user []*entity.User
-	tx := u.db.Where(&entity.User{Email: email, Username: username}).Find(&user)
+	tx := u.db.Preload("Tasks").Where(&entity.User{Email: email, Username: username}).Find(&user)
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {
 			return user, ErrUserNotFound
@@ -76,7 +76,7 @@ func (u *users) GetUserByID(userID int64) (entity.User, error) {
 }
 func (u *users) GetUserByUsername(username string) (entity.User, error) {
 	var user entity.User
-	tx := u.db.First(&user, "username = ?", username)
+	tx := u.db.Preload("Tasks").First(&user, "username = ?", username)
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {
 			return user, ErrUserNotFound
