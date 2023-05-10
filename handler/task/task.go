@@ -66,7 +66,7 @@ func (t Task) DisplayTasks(c *gin.Context) {
 		return
 	}
 	userId, _ := c.Get("userId")
-	task, err := t.TasksRepository.DisplayTask(id)
+	task, err := t.TasksRepository.Get(id)
 
 	if err != nil {
 		if err == repository.ErrTaskNotFound {
@@ -92,6 +92,15 @@ func (t Task) DisplayTasks(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+
+	if task.UserID != userId {
+		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+		logger.Error().Stack().Err(err).Msg("unauthorized")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	resp := dto.Task{}
 	resp.FromEntity(task)
 	c.Header("Content-Type", jsonapi.MediaType)
@@ -99,6 +108,7 @@ func (t Task) DisplayTasks(c *gin.Context) {
 		log.Fatal().Err(err).Msg("can not respond")
 	}
 }
+
 func (t Task) AddTask(c *gin.Context) {
 	cRequest := dto.TaskCreateRequest{}
 	if err := c.BindJSON(&cRequest); err != nil {
@@ -134,7 +144,7 @@ func (t Task) DeleteTask(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	task, err := t.TasksRepository.DisplayTask(id)
+	task, err := t.TasksRepository.Get(id)
 	if err != nil {
 		if err == repository.ErrTaskNotFound {
 			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
@@ -200,7 +210,7 @@ w.Write(delResult)*/
 
 func (t Task) Update(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	task, err := t.TasksRepository.DisplayTask(id)
+	task, err := t.TasksRepository.Get(id)
 	if err != nil {
 		if err == repository.ErrTaskNotFound {
 			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack

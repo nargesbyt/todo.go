@@ -13,7 +13,7 @@ func (m *MockTaskRepository) Create(title string, userId int64) (entity.Task, er
 	args := m.Called(title)
 	return args.Get(0).(entity.Task), args.Error(1)
 }
-func (m *MockTaskRepository) DisplayTask(id int64) (entity.Task, error) {
+func (m *MockTaskRepository) Get(id int64) (entity.Task, error) {
 	args := m.Called(id)
 	return args.Get(0).(entity.Task), args.Error(1)
 
