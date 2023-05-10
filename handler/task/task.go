@@ -7,26 +7,14 @@ import (
 	"github.com/nargesbyt/todo.go/handler"
 	"github.com/nargesbyt/todo.go/internal/dto"
 	"github.com/nargesbyt/todo.go/repository"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/rs/zerolog/pkgerrors"
 	"net/http"
-	"os"
 	"strconv"
 )
 
 type Task struct {
 	TasksRepository repository.Tasks
 }
-
-/*func jsonapiMeta() *jsonapi.Meta{
-	return &jsonapi.Meta{
-		"details":
-			"totalPage": totalPages
-	}
-
-
-}*/
 
 func (t Task) List(c *gin.Context) {
 
@@ -36,10 +24,8 @@ func (t Task) List(c *gin.Context) {
 	tasks, err := t.TasksRepository.Find(c.Query("title"), c.Query("status"), userId.(int64), pageNumber, limit)
 	fmt.Println("tasks are: ", tasks)
 	if err != nil {
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
-		logger.Error().Stack().Err(err).Msg("internal server error")
-		//log.Println(err)
+		log.Error().Stack().Err(err).Msg("internal server error")
+
 		c.AbortWithStatusJSON(http.StatusInternalServerError, handler.NewProblem(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
 		return
 	}
@@ -70,34 +56,28 @@ func (t Task) DisplayTasks(c *gin.Context) {
 
 	if err != nil {
 		if err == repository.ErrTaskNotFound {
-			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-			logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-			logger.Error().Stack().Err(err).Msg("task not found")
-			//log.Println(err)
+			log.Error().Stack().Err(err).Msg("task not found")
 			c.AbortWithStatusJSON(http.StatusNotFound, handler.NewProblem(http.StatusNotFound, "Task not found"))
+
 			return
 		}
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("internal server error")
-		//log.Println(err)
+
+		log.Error().Stack().Err(err).Msg("internal server error")
 		c.AbortWithStatus(http.StatusInternalServerError)
+
 		return
 	}
 	if task.UserID != userId {
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("unauthorized")
-		//log.Println("Unauthorized")
+		log.Error().Stack().Err(err).Msg("unauthorized")
 		c.AbortWithStatus(http.StatusUnauthorized)
+
 		return
 	}
 
 	if task.UserID != userId {
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("unauthorized")
+		log.Error().Stack().Err(err).Msg("unauthorized")
 		c.AbortWithStatus(http.StatusUnauthorized)
+
 		return
 	}
 
@@ -112,21 +92,17 @@ func (t Task) DisplayTasks(c *gin.Context) {
 func (t Task) AddTask(c *gin.Context) {
 	cRequest := dto.TaskCreateRequest{}
 	if err := c.BindJSON(&cRequest); err != nil {
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("unprocessable entity")
-		//log.Println(err)
+		log.Error().Stack().Err(err).Msg("unprocessable entity")
 		c.AbortWithStatus(http.StatusUnprocessableEntity)
+
 		return
 	}
 	userId, _ := c.Get("userId")
 	task, err := t.TasksRepository.Create(cRequest.Title, userId.(int64))
 	if err != nil {
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("internal server error")
-		//log.Println(err)
+		log.Error().Stack().Err(err).Msg("internal server error")
 		c.AbortWithStatus(http.StatusInternalServerError)
+
 		return
 	}
 	resp := dto.Task{}
@@ -147,119 +123,87 @@ func (t Task) DeleteTask(c *gin.Context) {
 	task, err := t.TasksRepository.Get(id)
 	if err != nil {
 		if err == repository.ErrTaskNotFound {
-			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-			logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-			logger.Error().Stack().Err(err).Msg("task not found")
-			//log.Println(err)
+			log.Error().Stack().Err(err).Msg("task not found")
 			c.AbortWithStatusJSON(http.StatusNotFound, handler.NewProblem(http.StatusNotFound, "Task not found"))
+
 			return
 		}
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("internal server error")
-		//log.Println(err)
+
+		log.Error().Stack().Err(err).Msg("internal server error")
 		c.AbortWithStatus(http.StatusInternalServerError)
+
 		return
 	}
+
 	userId, _ := c.Get("userId")
 	if task.UserID != userId {
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("unauthorized")
-		//log.Println("Unauthorized")
+		log.Error().Stack().Err(err).Msg("unauthorized")
 		c.AbortWithStatus(http.StatusUnauthorized)
+
 		return
 	}
 	err = t.TasksRepository.Delete(id)
 	if err != nil {
 		if err == repository.ErrTaskNotFound {
-			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-			logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-			logger.Error().Stack().Err(err).Msg("task not found")
-			//log.Println(err)
+			log.Error().Stack().Err(err).Msg("task not found")
 			c.AbortWithStatusJSON(http.StatusNotFound, handler.NewProblem(http.StatusNotFound, "Task not found"))
+
 			return
 		}
+
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	c.Status(http.StatusAccepted)
 }
 
-/*reg, err := regexp.Compile(`/tasks/(\d+)`)
-if err != nil {
-	log.Println(err)
-	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-	return
-}
-matches := reg.FindStringSubmatch(r.URL.Path)
-if len(matches) == 0 {
-	log.Println(err)
-	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-	return
-}
-id, err := strconv.ParseInt(matches[1], 10, 64)
-delResult, err := t.TasksRepository.Delete(id)
-if err != nil {
-	log.Println(err)
-	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-}
-w.Header().Set("Content-Type", "application/json")
-w.WriteHeader(http.StatusOK)
-w.Write(delResult)*/
-
 func (t Task) Update(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	task, err := t.TasksRepository.Get(id)
 	if err != nil {
 		if err == repository.ErrTaskNotFound {
-			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-			logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-			logger.Error().Stack().Err(err).Msg("task not found")
-			//log.Println(err)
+			log.Error().Stack().Err(err).Msg("task not found")
 			c.AbortWithStatusJSON(http.StatusNotFound, handler.NewProblem(http.StatusNotFound, "Task not found"))
+
 			return
 		}
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("internal server error")
-		//log.Println(err)
+
+		log.Error().Stack().Err(err).Msg("internal server error")
 		c.AbortWithStatus(http.StatusInternalServerError)
+
 		return
 	}
+
 	userId, _ := c.Get("userId")
 	if task.UserID != userId {
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("unauthorized")
-		//log.Println("Unauthorized")
+		log.Error().Stack().Err(err).Msg("unauthorized")
 		c.AbortWithStatus(http.StatusUnauthorized)
+
 		return
 	}
+
 	uRequest := dto.TaskUpdateRequest{}
 	if err := c.BindJSON(&uRequest); err != nil {
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("unprocessable entity")
-		//log.Println(err)
+		log.Error().Stack().Err(err).Msg("unprocessable entity")
 		c.AbortWithStatus(http.StatusUnprocessableEntity)
+
 		return
 	}
+
 	resp := dto.Task{}
 	updateResult, err := t.TasksRepository.Update(id, uRequest.Title, uRequest.Status)
 	if err != nil {
 		if err == repository.ErrUnauthorized {
-			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-			logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-			logger.Error().Stack().Err(err).Msg("unauthorized")
-			//log.Println(err)
+			log.Error().Stack().Err(err).Msg("unauthorized")
 			c.AbortWithStatus(http.StatusUnauthorized)
+
+			return
 		}
-		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-		logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-		logger.Error().Stack().Err(err).Msg("internal server error")
-		//log.Println(err)
+
+		log.Error().Stack().Err(err).Msg("internal server error")
 		c.AbortWithStatus(http.StatusInternalServerError)
+
+		return
 	}
 	resp.FromEntity(updateResult)
 	c.Header("Content-Type", jsonapi.MediaType)

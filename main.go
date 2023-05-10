@@ -10,16 +10,19 @@ import (
 	"github.com/nargesbyt/todo.go/handler/task"
 	"github.com/nargesbyt/todo.go/handler/user"
 	"github.com/nargesbyt/todo.go/repository"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
 func GenerateToken(password string) string {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 	fmt.Println("Hash to store:", string(hash))
 
@@ -27,6 +30,7 @@ func GenerateToken(password string) string {
 	hasher.Write(hash)
 	return hex.EncodeToString(hasher.Sum(nil))
 }
+
 func AccessTokenAuth(usersRepository repository.Users) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authz := c.GetHeader("Authorization")
@@ -102,19 +106,27 @@ func BasicAuth(usersRepository repository.Users) gin.HandlerFunc {
 }
 
 func main() {
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	log.Logger = zerolog.New(os.Stderr).
+		Level(zerolog.ErrorLevel).
+		With().
+		Timestamp().
+		Caller().
+		Logger()
+
 	db, err := database.NewSqlite("todo.db")
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("Unable to initialize database connection")
 	}
 	repo, err := repository.NewTasks(db)
 	if err != nil {
-		log.Fatal("Init tasks table ", err)
+		log.Fatal().Err(err).Msg("Unable to initialize the tasks repository")
 	}
-	//repo.Init()
+
 	userRepository, err := repository.NewUser(db)
 	if err != nil {
-		log.Fatal("Init users table", err)
+		log.Fatal().Err(err).Msg("Unable to initialize the users repository")
 	}
 	th := task.Task{TasksRepository: repo}
 	uh := user.User{UsersRepository: userRepository}
