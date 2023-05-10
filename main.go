@@ -48,8 +48,7 @@ func AccessTokenAuth(usersRepository repository.Users) gin.HandlerFunc {
 			c.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
-		userId := user.ID
-
+		//userId := user.ID
 		if err := user.CheckPassword(splitedUserPass[1]); err != nil {
 			c.AbortWithError(http.StatusUnauthorized, err)
 			return
@@ -91,12 +90,12 @@ func BasicAuth(usersRepository repository.Users) gin.HandlerFunc {
 			c.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
-		
+
 		if err := user.CheckPassword(splitedUserPass[1]); err != nil {
 			c.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
-		
+
 		c.Set("userId", user.ID)
 		c.Next()
 	}
