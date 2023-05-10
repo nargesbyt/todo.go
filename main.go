@@ -1,17 +1,65 @@
 package main
 
 import (
+	"crypto/md5"
 	"encoding/base64"
+	"encoding/hex"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/nargesbyt/todo.go/database"
 	"github.com/nargesbyt/todo.go/handler/task"
 	"github.com/nargesbyt/todo.go/handler/user"
 	"github.com/nargesbyt/todo.go/repository"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"strings"
 )
 
+func GenerateToken(password string) string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Hash to store:", string(hash))
+
+	hasher := md5.New()
+	hasher.Write(hash)
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+func AccessTokenAuth(usersRepository repository.Users) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authz := c.GetHeader("Authorization")
+
+		splits := strings.Split(authz, " ")
+
+		if splits[0] != "Basic" {
+			c.Next()
+			return
+		}
+		userPass, err := base64.StdEncoding.DecodeString(splits[1])
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		splitedUserPass := strings.Split(string(userPass), ":")
+		user, err := usersRepository.GetUserByUsername(splitedUserPass[0])
+		if err != nil {
+			c.AbortWithError(http.StatusUnauthorized, err)
+			return
+		}
+		userId := user.ID
+
+		if err := user.CheckPassword(splitedUserPass[1]); err != nil {
+			c.AbortWithError(http.StatusUnauthorized, err)
+			return
+		}
+		c.Set("userId", user.ID)
+		token := GenerateToken(splitedUserPass[1])
+		c.JSON(http.StatusOK, token)
+
+	}
+}
 func BasicAuth(usersRepository repository.Users) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authz := c.GetHeader("Authorization")
@@ -38,7 +86,6 @@ func BasicAuth(usersRepository repository.Users) gin.HandlerFunc {
 			return
 		}
 		c.Set("userId", user.ID)
-		//c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), "user_id", user.ID))
 		c.Next()
 
 	}
