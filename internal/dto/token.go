@@ -6,30 +6,35 @@ import (
 )
 
 type CreateTokenRequest struct {
-	Title     string `json:"title"`
-	ExpiresAt string `json:"expires_at"`
+	Title     string    `json:"title"`
+	ExpiredAt time.Time `json:"expired_at"`
 }
+
 type UpdateRequest struct {
 	Title     string    `json:"title"`
-	ExpiresAt time.Time `json:"expires_at"`
+	ExpiredAt time.Time `json:"expired_at"`
 }
+
 type Tokens struct {
-	ID          int64     `jsonapi:"primary,tokens"`
-	Title       string    `jsonapi:"attr,title"`
-	GeneratedAt time.Time `jsonapi:"attr,generated_at"`
-	ExpiresAt   time.Time `jsonapi:"attr,expires_at"`
-	Token       string    `jsonapi:"attr,token"`
-	User        *User     `jsonapi:"relation,user"`
+	ID        int64     `jsonapi:"primary,tokens"`
+	Title     string    `jsonapi:"attr,title"`
+	IssuedAt  time.Time `jsonapi:"attr,issued_at"`
+	ExpiredAt time.Time `jsonapi:"attr,expired_at"`
+	Token     string    `jsonapi:"attr,token"`
+	User      *User     `jsonapi:"relation,user"`
 }
 
 func (r *Tokens) FromEntity(token entity.Token) {
 	r.ID = token.ID
 	r.Title = token.Title
-	r.GeneratedAt = token.GeneratedAt
-	r.ExpiresAt = token.ExpiresAt
+	r.IssuedAt = token.IssuedAt
 	r.Token = token.Token
+
+	if token.ExpiredAt.Valid {
+		r.ExpiredAt = token.ExpiredAt.Time
+	}
+
 	user := User{}
 	user.FromEntity(token.User)
 	r.User = &user
-
 }

@@ -1,17 +1,17 @@
 package repository
 
 import (
-	"encoding/base64"
+	"crypto/rand"
+	"database/sql"
 	"errors"
 	"github.com/nargesbyt/todo.go/entity"
 	"gorm.io/gorm"
-	"math/rand"
 	"time"
 )
 
 var ErrTokenNotFound = errors.New("token not found")
 
-type PersonalAccessToken interface {
+type Tokens interface {
 	Add(title string, expiresAt time.Time, userId int64) (entity.Token, error)
 	Get(id int64) (entity.Token, error)
 	List(title string, userId int64) ([]*entity.Token, error)
@@ -23,33 +23,47 @@ type tokens struct {
 	db *gorm.DB
 }
 
-func NewPersonalAccessToken(db *gorm.DB) (PersonalAccessToken, error) {
+func NewPersonalAccessToken(db *gorm.DB) (Tokens, error) {
 	token := &tokens{db: db}
-	/*err := db.AutoMigrate(&entity.Token{})
+	err := db.AutoMigrate(&entity.Token{})
 	if err != nil {
 		return nil, err
-	}*/
+	}
 
 	return token, nil
 }
-func (t *tokens) Add(title string, expiresAt time.Time, userId int64) (entity.Token, error) {
-	token := entity.Token{}
+func (t *tokens) Add(title string, expiredAt time.Time, userId int64) (entity.Token, error) {
 	randomToken := make([]byte, 32)
 	_, err := rand.Read(randomToken)
 	if err != nil {
-		return token, err
+		return entity.Token{}, err
 	}
-	authToken := base64.URLEncoding.EncodeToString(randomToken)
-	token = entity.Token{
+
+	expireTime := sql.NullTime{}
+	err = expireTime.Scan(expiredAt)
+	if err != nil {
+		return entity.Token{}, err
+	}
+
+	token := entity.Token{
 		Title:     title,
-		ExpiresAt: expiresAt,
-		Token:     authToken,
+		ExpiredAt: expireTime,
+		Token:     string(randomToken),
 		UserID:    userId,
 	}
+
+	err = token.HashToken()
+	if err != nil {
+		return entity.Token{}, err
+	}
+
 	tx := t.db.Create(&token)
 	if tx.Error != nil {
-		return token, tx.Error
+		return entity.Token{}, tx.Error
 	}
+
+	token.Token = string(randomToken)
+
 	return token, nil
 }
 
@@ -91,14 +105,22 @@ func (t *tokens) Update(id int64, title string, expiresAt time.Time) (entity.Tok
 		}
 		return token, err
 	}
-	token.ExpiresAt = expiresAt
+
+	expireTime := sql.NullTime{}
+	err = expireTime.Scan(expireTime)
+	if err != nil {
+		return token, err
+	}
+
+	token.ExpiredAt = expireTime
 	token.Title = title
+
 	tx := t.db.Save(&token)
 	if tx.Error != nil {
 		return token, tx.Error
 	}
-	return token, nil
 
+	return token, nil
 }
 
 func (t *tokens) Delete(id int64) error {

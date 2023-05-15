@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"github.com/gin-gonic/gin"
 	"github.com/nargesbyt/todo.go/database"
-	"github.com/nargesbyt/todo.go/handler/personaltoken"
 	"github.com/nargesbyt/todo.go/handler/task"
+	"github.com/nargesbyt/todo.go/handler/token"
 	"github.com/nargesbyt/todo.go/handler/user"
 	"github.com/nargesbyt/todo.go/repository"
 	"github.com/rs/zerolog"
@@ -89,7 +89,7 @@ func main() {
 
 	th := task.Task{TasksRepository: repo}
 	uh := user.User{UsersRepository: userRepository}
-	toh := personaltoken.PersonalTokens{TokenRepository: tRepository}
+	toh := token.Token{TokenRepository: tRepository}
 
 	r := gin.Default()
 	r.GET("/tasks", BasicAuth(userRepository), th.List)
@@ -110,6 +110,8 @@ func main() {
 	r.PATCH("/tokens/:id", BasicAuth(userRepository), toh.Update)
 	r.DELETE("/tokens/:id", BasicAuth(userRepository), toh.Delete)
 
-	r.Run(":8080")
-
+	err = r.Run(":8080")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to run HTTP server")
+	}
 }

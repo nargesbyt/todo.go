@@ -1,4 +1,4 @@
-package personaltoken
+package token
 
 import (
 	"errors"
@@ -10,14 +10,13 @@ import (
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
-	"time"
 )
 
-type PersonalTokens struct {
-	TokenRepository repository.PersonalAccessToken
+type Token struct {
+	TokenRepository repository.Tokens
 }
 
-func (t PersonalTokens) Create(c *gin.Context) {
+func (t Token) Create(c *gin.Context) {
 	createTokenRequest := dto.CreateTokenRequest{}
 	err := c.BindJSON(&createTokenRequest)
 	if err != nil {
@@ -26,25 +25,35 @@ func (t PersonalTokens) Create(c *gin.Context) {
 
 		return
 	}
+
 	userId, _ := c.Get("userId")
-	expireTime, err := time.Parse(time.RFC3339, createTokenRequest.ExpiresAt)
-	//fmt.Println(expireTime)
-	token, err := t.TokenRepository.Add(createTokenRequest.Title, expireTime, userId.(int64))
+	//expireTime, err := time.Parse(time.RFC3339, createTokenRequest.ExpiredAt)
+	//if err != nil {
+	//	c.AbortWithStatus(http.StatusBadRequest)
+	//	log.Error().Stack().Err(err).Msg("can not parse the expire time")
+	//
+	//	return
+	//}
+
+	token, err := t.TokenRepository.Add(createTokenRequest.Title, createTokenRequest.ExpiredAt, userId.(int64))
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("internal server error while inserting a record in tokens table")
 		c.AbortWithStatus(http.StatusInternalServerError)
 
 		return
 	}
+
 	resp := dto.Tokens{}
 	resp.FromEntity(token)
+
 	c.Header("Content-Type", jsonapi.MediaType)
+	c.Status(http.StatusCreated)
+
 	if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
 		log.Fatal().Err(err).Msg("can not respond")
 	}
-	//c.JSON(http.StatusCreated, token)
 }
-func (t PersonalTokens) GetToken(c *gin.Context) {
+func (t Token) GetToken(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -82,7 +91,8 @@ func (t PersonalTokens) GetToken(c *gin.Context) {
 	}*/
 	c.JSON(http.StatusOK, &token)
 }
-func (t PersonalTokens) List(c *gin.Context) {
+
+func (t Token) List(c *gin.Context) {
 	userId, _ := c.Get("userId")
 	tokens, err := t.TokenRepository.List(c.Query("title"), userId.(int64))
 	if err != nil {
@@ -110,7 +120,8 @@ func (t PersonalTokens) List(c *gin.Context) {
 	}
 
 }
-func (t PersonalTokens) Update(c *gin.Context) {
+
+func (t Token) Update(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	token, err := t.TokenRepository.Get(id)
 	if err != nil {
@@ -142,7 +153,7 @@ func (t PersonalTokens) Update(c *gin.Context) {
 	}
 
 	resp := dto.Tokens{}
-	updateResult, err := t.TokenRepository.Update(id, uRequest.Title, uRequest.ExpiresAt)
+	updateResult, err := t.TokenRepository.Update(id, uRequest.Title, uRequest.ExpiredAt)
 	if err != nil {
 		if err == repository.ErrUnauthorized {
 			log.Error().Stack().Err(err).Msg("unauthorized")
@@ -163,7 +174,7 @@ func (t PersonalTokens) Update(c *gin.Context) {
 	}
 }
 
-func (t PersonalTokens) Delete(c *gin.Context) {
+func (t Token) Delete(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
