@@ -1,68 +1,21 @@
 package main
 
 import (
-	"crypto/md5"
 	"encoding/base64"
-	"encoding/hex"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/nargesbyt/todo.go/database"
+	"github.com/nargesbyt/todo.go/handler/personaltoken"
 	"github.com/nargesbyt/todo.go/handler/task"
 	"github.com/nargesbyt/todo.go/handler/user"
 	"github.com/nargesbyt/todo.go/repository"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"os"
 	"strings"
 )
 
-func GenerateToken(password string) string {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		log.Fatal().Err(err)
-	}
-	fmt.Println("Hash to store:", string(hash))
-
-	hasher := md5.New()
-	hasher.Write(hash)
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-func AccessTokenAuth(usersRepository repository.Users) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authz := c.GetHeader("Authorization")
-
-		splits := strings.Split(authz, " ")
-
-		if splits[0] != "Basic" {
-			c.Next()
-			return
-		}
-		userPass, err := base64.StdEncoding.DecodeString(splits[1])
-		if err != nil {
-			c.AbortWithStatus(http.StatusBadRequest)
-			return
-		}
-		splitedUserPass := strings.Split(string(userPass), ":")
-		user, err := usersRepository.GetUserByUsername(splitedUserPass[0])
-		if err != nil {
-			c.AbortWithError(http.StatusUnauthorized, err)
-			return
-		}
-		//userId := user.ID
-		if err := user.CheckPassword(splitedUserPass[1]); err != nil {
-			c.AbortWithError(http.StatusUnauthorized, err)
-			return
-		}
-		c.Set("userId", user.ID)
-		token := GenerateToken(splitedUserPass[1])
-		c.JSON(http.StatusOK, token)
-
-	}
-}
 func BasicAuth(usersRepository repository.Users) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authz := c.GetHeader("Authorization")
@@ -128,8 +81,15 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to initialize the users repository")
 	}
+
+	tRepository, err := repository.NewPersonalAccessToken(db)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to initialize the tokens repository")
+	}
+
 	th := task.Task{TasksRepository: repo}
 	uh := user.User{UsersRepository: userRepository}
+	toh := personaltoken.PersonalTokens{TokenRepository: tRepository}
 
 	r := gin.Default()
 	r.GET("/tasks", BasicAuth(userRepository), th.List)
@@ -143,5 +103,13 @@ func main() {
 	r.GET("/users/:id", uh.Get)
 	r.PATCH("/users/:id", uh.UpdateUsers)
 	r.DELETE("/users/:id", uh.Delete)
+
+	r.POST("/tokens", BasicAuth(userRepository), toh.Create)
+	r.GET("/tokens/:id", BasicAuth(userRepository), toh.GetToken)
+	r.GET("/tokens", BasicAuth(userRepository), toh.List)
+	r.PATCH("/tokens/:id", BasicAuth(userRepository), toh.Update)
+	r.DELETE("/tokens/:id", BasicAuth(userRepository), toh.Delete)
+
 	r.Run(":8080")
+
 }

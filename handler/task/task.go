@@ -74,13 +74,6 @@ func (t Task) DisplayTasks(c *gin.Context) {
 		return
 	}
 
-	if task.UserID != userId {
-		log.Error().Stack().Err(err).Msg("unauthorized")
-		c.AbortWithStatus(http.StatusUnauthorized)
-
-		return
-	}
-
 	resp := dto.Task{}
 	resp.FromEntity(task)
 	c.Header("Content-Type", jsonapi.MediaType)
@@ -144,12 +137,12 @@ func (t Task) DeleteTask(c *gin.Context) {
 	}
 	err = t.TasksRepository.Delete(id)
 	if err != nil {
-		if err == repository.ErrTaskNotFound {
+		/*if err == repository.ErrTaskNotFound {
 			log.Error().Stack().Err(err).Msg("task not found")
 			c.AbortWithStatusJSON(http.StatusNotFound, handler.NewProblem(http.StatusNotFound, "Task not found"))
 
 			return
-		}
+		}*/
 
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
