@@ -14,9 +14,26 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
-func BasicAuth(usersRepository repository.Users) gin.HandlerFunc {
+func AfterAuth(tokenRepository repository.Tokens) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenId, _ := c.Get("tokenId")
+		token, err := tokenRepository.Get(tokenId.(int64))
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		var ExpiredAt time.Time
+		if token.ExpiredAt.Valid {
+			ExpiredAt = token.ExpiredAt.Time
+		}
+		tokenRepository.Update(tokenId.(int64), token.Title, ExpiredAt, time.Now(), token.Active)
+	}
+}
+
+func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tokens) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authz := c.GetHeader("Authorization")
 		if authz == "" {
@@ -47,7 +64,39 @@ func BasicAuth(usersRepository repository.Users) gin.HandlerFunc {
 			c.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
+		if strings.HasPrefix(splitedUserPass[1], "todo_pat") {
+			tokens, err := tokensRepository.List("", user.ID)
+			if err != nil {
+				c.AbortWithError(http.StatusUnauthorized, err)
+				return
+			}
+			numTokens := len(tokens)
+			for _, token := range tokens {
+				err = token.VerifyToken(splitedUserPass[1])
+				numTokens--
+				if err != nil {
+					if numTokens != 0 {
+						continue
+					}
+					c.AbortWithError(http.StatusUnauthorized, err)
+					return
+				}
+				/*if time.Now().After(token.ExpiredAt) {
+					c.AbortWithError(http.StatusUnauthorized, err)
+					return
+				}*/
+				if token.Active == 0 {
+					c.AbortWithError(http.StatusUnauthorized, err)
+					return
+				}
+				c.Set("tokenId", token.ID)
+				c.Set("userId", user.ID)
+				c.Next()
 
+				return
+			}
+
+		}
 		if err := user.CheckPassword(splitedUserPass[1]); err != nil {
 			c.AbortWithError(http.StatusUnauthorized, err)
 			return
@@ -82,7 +131,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Unable to initialize the users repository")
 	}
 
-	tRepository, err := repository.NewPersonalAccessToken(db)
+	tRepository, err := repository.NewToken(db)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to initialize the tokens repository")
 	}
@@ -92,11 +141,11 @@ func main() {
 	toh := token.Token{TokenRepository: tRepository}
 
 	r := gin.Default()
-	r.GET("/tasks", BasicAuth(userRepository), th.List)
-	r.GET("/tasks/:id", BasicAuth(userRepository), th.DisplayTasks)
-	r.POST("/tasks", BasicAuth(userRepository), th.AddTask)
-	r.PATCH("/tasks/:id", BasicAuth(userRepository), th.Update)
-	r.DELETE("/tasks/:id", BasicAuth(userRepository), th.DeleteTask)
+	r.GET("/tasks", BasicAuth(userRepository, tRepository), th.List, AfterAuth(tRepository))
+	r.GET("/tasks/:id", BasicAuth(userRepository, tRepository), th.DisplayTasks, AfterAuth(tRepository))
+	r.POST("/tasks", BasicAuth(userRepository, tRepository), th.AddTask, AfterAuth(tRepository))
+	r.PATCH("/tasks/:id", BasicAuth(userRepository, tRepository), th.Update, AfterAuth(tRepository))
+	r.DELETE("/tasks/:id", BasicAuth(userRepository, tRepository), th.DeleteTask, AfterAuth(tRepository))
 
 	r.POST("/users", uh.Create)
 	r.GET("/users", uh.ListUsers)
@@ -104,11 +153,11 @@ func main() {
 	r.PATCH("/users/:id", uh.UpdateUsers)
 	r.DELETE("/users/:id", uh.Delete)
 
-	r.POST("/tokens", BasicAuth(userRepository), toh.Create)
-	r.GET("/tokens/:id", BasicAuth(userRepository), toh.GetToken)
-	r.GET("/tokens", BasicAuth(userRepository), toh.List)
-	r.PATCH("/tokens/:id", BasicAuth(userRepository), toh.Update)
-	r.DELETE("/tokens/:id", BasicAuth(userRepository), toh.Delete)
+	r.POST("/tokens", BasicAuth(userRepository, tRepository), toh.Create, AfterAuth(tRepository))
+	r.GET("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Get, AfterAuth(tRepository))
+	r.GET("/tokens", BasicAuth(userRepository, tRepository), toh.List, AfterAuth(tRepository))
+	r.PATCH("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Update, AfterAuth(tRepository))
+	r.DELETE("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Delete, AfterAuth(tRepository))
 
 	err = r.Run(":8080")
 	if err != nil {

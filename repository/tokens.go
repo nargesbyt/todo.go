@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"crypto/rand"
 	"database/sql"
 	"errors"
 	"github.com/nargesbyt/todo.go/entity"
@@ -12,10 +11,11 @@ import (
 var ErrTokenNotFound = errors.New("token not found")
 
 type Tokens interface {
-	Add(title string, expiresAt time.Time, userId int64) (entity.Token, error)
+	Add(title string, expiredAt time.Time, userId int64) (entity.Token, error)
 	Get(id int64) (entity.Token, error)
+	//GetByToken(tokenString string)(entity.Token,error)
 	List(title string, userId int64) ([]*entity.Token, error)
-	Update(id int64, title string, expiresAt time.Time) (entity.Token, error)
+	Update(id int64, title string, expiresAt time.Time, lastUsed time.Time, active int) (entity.Token, error)
 	Delete(id int64) error
 }
 
@@ -23,24 +23,27 @@ type tokens struct {
 	db *gorm.DB
 }
 
-func NewPersonalAccessToken(db *gorm.DB) (Tokens, error) {
+func NewToken(db *gorm.DB) (Tokens, error) {
 	token := &tokens{db: db}
-	err := db.AutoMigrate(&entity.Token{})
+	/*err := db.AutoMigrate(&entity.Token{})
 	if err != nil {
 		return nil, err
-	}
+	}*/
 
 	return token, nil
 }
+
 func (t *tokens) Add(title string, expiredAt time.Time, userId int64) (entity.Token, error) {
-	randomToken := make([]byte, 32)
+	/*randomToken := make([]byte, 32)
 	_, err := rand.Read(randomToken)
 	if err != nil {
 		return entity.Token{}, err
-	}
+	}*/
+	randomToken := "todo_pat_"
+	randomToken += String(32)
 
 	expireTime := sql.NullTime{}
-	err = expireTime.Scan(expiredAt)
+	err := expireTime.Scan(expiredAt)
 	if err != nil {
 		return entity.Token{}, err
 	}
@@ -48,8 +51,10 @@ func (t *tokens) Add(title string, expiredAt time.Time, userId int64) (entity.To
 	token := entity.Token{
 		Title:     title,
 		ExpiredAt: expireTime,
-		Token:     string(randomToken),
+		Token:     randomToken,
 		UserID:    userId,
+		Active:    1,
+		LastUsed:  time.Now(),
 	}
 
 	err = token.HashToken()
@@ -62,7 +67,7 @@ func (t *tokens) Add(title string, expiredAt time.Time, userId int64) (entity.To
 		return entity.Token{}, tx.Error
 	}
 
-	token.Token = string(randomToken)
+	token.Token = randomToken
 
 	return token, nil
 }
@@ -97,7 +102,7 @@ func (t *tokens) List(title string, userId int64) ([]*entity.Token, error) {
 
 }
 
-func (t *tokens) Update(id int64, title string, expiresAt time.Time) (entity.Token, error) {
+func (t *tokens) Update(id int64, title string, expiresAt time.Time, lastUsed time.Time, active int) (entity.Token, error) {
 	token, err := t.Get(id)
 	if err != nil {
 		if err == ErrTokenNotFound {
@@ -114,6 +119,8 @@ func (t *tokens) Update(id int64, title string, expiresAt time.Time) (entity.Tok
 
 	token.ExpiredAt = expireTime
 	token.Title = title
+	token.LastUsed = lastUsed
+	token.Active = active
 
 	tx := t.db.Save(&token)
 	if tx.Error != nil {

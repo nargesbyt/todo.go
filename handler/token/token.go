@@ -49,11 +49,12 @@ func (t Token) Create(c *gin.Context) {
 	c.Header("Content-Type", jsonapi.MediaType)
 	c.Status(http.StatusCreated)
 
-	if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
+	/*if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
 		log.Fatal().Err(err).Msg("can not respond")
-	}
+	}*/
+	c.JSON(http.StatusCreated, &resp)
 }
-func (t Token) GetToken(c *gin.Context) {
+func (t Token) Get(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -153,7 +154,7 @@ func (t Token) Update(c *gin.Context) {
 	}
 
 	resp := dto.Tokens{}
-	updateResult, err := t.TokenRepository.Update(id, uRequest.Title, uRequest.ExpiredAt)
+	updateResult, err := t.TokenRepository.Update(id, uRequest.Title, uRequest.ExpiredAt, uRequest.LastUsed, uRequest.Active)
 	if err != nil {
 		if err == repository.ErrUnauthorized {
 			log.Error().Stack().Err(err).Msg("unauthorized")
