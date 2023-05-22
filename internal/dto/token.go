@@ -33,12 +33,16 @@ func (r *Tokens) FromEntity(token entity.Token) {
 	r.Title = token.Title
 	r.IssuedAt = token.IssuedAt
 	r.Token = token.Token
+	r.Active = token.Active
 
 	if token.ExpiredAt.Valid {
 		r.ExpiredAt = token.ExpiredAt.Time
 	}
-	r.Active = token.Active
-	r.LastUsed = token.LastUsed
+
+	if token.LastUsed.Valid {
+		r.LastUsed = token.LastUsed.Time
+	}
+
 	user := User{}
 	user.FromEntity(token.User)
 	r.User = &user

@@ -15,7 +15,7 @@ type Token struct {
 	Token     string
 	IssuedAt  time.Time `gorm:"autoCreateTime"`
 	Active    int
-	LastUsed  time.Time
+	LastUsed  sql.NullTime
 	ExpiredAt sql.NullTime
 	User      User
 }

@@ -23,7 +23,7 @@ type users struct {
 	db *gorm.DB
 }
 
-func NewUser(db *gorm.DB) (Users, error) {
+func NewUsers(db *gorm.DB) (Users, error) {
 	u := &users{db: db}
 
 	err := db.AutoMigrate(&entity.User{})
@@ -100,10 +100,10 @@ func (u *users) UpdateUsers(id int64, username string, email string, password st
 }
 
 func (u *users) DeleteUsers(id int64) error {
-	var user entity.User
-	tx := u.db.Delete(&user, id)
+	tx := u.db.Delete(&entity.User{}, id)
 	if tx.Error != nil {
 		return tx.Error
 	}
+
 	return nil
 }

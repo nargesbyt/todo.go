@@ -95,11 +95,10 @@ func (t *tasks) Update(id int64, title string, status string) (entity.Task, erro
 }
 
 func (t *tasks) Delete(id int64) error {
-	var task entity.Task
-	tx := t.db.First(&task, id)
-	tx = t.db.Delete(&task, id)
+	tx := t.db.Delete(&entity.Task{}, id)
 	if tx.Error != nil {
 		return tx.Error
 	}
+
 	return nil
 }
