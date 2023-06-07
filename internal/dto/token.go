@@ -13,7 +13,6 @@ type CreateTokenRequest struct {
 type UpdateRequest struct {
 	Title     string    `json:"title"`
 	ExpiredAt time.Time `json:"expired_at"`
-	LastUsed  time.Time `json:"last_used"`
 	Active    int       `json:"active"`
 }
 

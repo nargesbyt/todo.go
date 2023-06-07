@@ -26,10 +26,10 @@ type tokens struct {
 
 func NewTokens(db *gorm.DB) (Tokens, error) {
 	token := &tokens{db: db}
-	err := db.AutoMigrate(&entity.Token{})
+	/*err := db.AutoMigrate(&entity.Token{})
 	if err != nil {
 		return nil, err
-	}
+	}*/
 
 	return token, nil
 }
@@ -50,7 +50,7 @@ func (t *tokens) Add(title string, expiredAt time.Time, userId int64) (entity.To
 		Token:     randomToken,
 		UserID:    userId,
 		Active:    1,
-		LastUsed:  expireTime,
+		//LastUsed:  expireTime,
 	}
 
 	err = token.HashToken()
@@ -128,7 +128,7 @@ func (t *tokens) Update(id int64, title string, expiresAt time.Time, lastUsed ti
 	}
 
 	lastUsedTime := sql.NullTime{}
-	err = expireTime.Scan(lastUsed)
+	err = lastUsedTime.Scan(lastUsed)
 	if err != nil {
 		return token, err
 	}

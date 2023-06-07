@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type Token struct {
@@ -27,13 +28,13 @@ func (t Token) Create(c *gin.Context) {
 	}
 
 	userId, _ := c.Get("userId")
-	//expireTime, err := time.Parse(time.RFC3339, createTokenRequest.ExpiredAt)
-	//if err != nil {
-	//	c.AbortWithStatus(http.StatusBadRequest)
-	//	log.Error().Stack().Err(err).Msg("can not parse the expire time")
-	//
-	//	return
-	//}
+	/*expireTime, err := time.Parse(time.RFC3339, (createTokenRequest.ExpiredAt).String())
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		log.Error().Stack().Err(err).Msg("can not parse the expire time")
+
+		return
+	}*/
 
 	token, err := t.TokenRepository.Add(createTokenRequest.Title, createTokenRequest.ExpiredAt, userId.(int64))
 	if err != nil {
@@ -49,10 +50,10 @@ func (t Token) Create(c *gin.Context) {
 	c.Header("Content-Type", jsonapi.MediaType)
 	c.Status(http.StatusCreated)
 
-	/*if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
+	if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
 		log.Fatal().Err(err).Msg("can not respond")
-	}*/
-	c.JSON(http.StatusCreated, &resp)
+	}
+	//c.JSON(http.StatusCreated, &resp)
 }
 func (t Token) Get(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -84,13 +85,13 @@ func (t Token) Get(c *gin.Context) {
 
 		return
 	}
-	/*resp := dto.Tokens{}
+	resp := dto.Tokens{}
 	resp.FromEntity(token)
 	c.Header("Content-Type", jsonapi.MediaType)
 	if err := jsonapi.MarshalPayload(c.Writer, &resp); err != nil {
 		log.Fatal().Err(err).Msg("can not respond")
-	}*/
-	c.JSON(http.StatusOK, &token)
+	}
+	//c.JSON(http.StatusOK, &token)
 }
 
 func (t Token) List(c *gin.Context) {
@@ -154,7 +155,7 @@ func (t Token) Update(c *gin.Context) {
 	}
 
 	resp := dto.Tokens{}
-	updateResult, err := t.TokenRepository.Update(id, uRequest.Title, uRequest.ExpiredAt, uRequest.LastUsed, uRequest.Active)
+	updateResult, err := t.TokenRepository.Update(id, uRequest.Title, uRequest.ExpiredAt, time.Now(), uRequest.Active)
 	if err != nil {
 		if err == repository.ErrUnauthorized {
 			log.Error().Stack().Err(err).Msg("unauthorized")

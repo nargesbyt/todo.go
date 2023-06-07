@@ -54,7 +54,7 @@ func (u User) Create(c *gin.Context) {
 	//c.JSON(http.StatusCreated, user)
 
 }
-func (u User) ListUsers(c *gin.Context) {
+func (u User) List(c *gin.Context) {
 	users, err := u.UsersRepository.GetUsers(c.Query("email"), c.Query("username"))
 	if err != nil {
 		if err == repository.ErrUserNotFound {
@@ -88,7 +88,7 @@ func (u User) ListUsers(c *gin.Context) {
 	}
 	//c.JSON(http.StatusOK, user)
 }
-func (u User) UpdateUsers(c *gin.Context) {
+func (u User) Update(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack

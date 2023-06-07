@@ -45,7 +45,7 @@ func (t Task) List(c *gin.Context) {
 	}
 
 }
-func (t Task) DisplayTasks(c *gin.Context) {
+func (t Task) Get(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, handler.NewProblem(http.StatusBadRequest, "invalid task id"))
@@ -82,7 +82,7 @@ func (t Task) DisplayTasks(c *gin.Context) {
 	}
 }
 
-func (t Task) AddTask(c *gin.Context) {
+func (t Task) Create(c *gin.Context) {
 	cRequest := dto.TaskCreateRequest{}
 	if err := c.BindJSON(&cRequest); err != nil {
 		log.Error().Stack().Err(err).Msg("unprocessable entity")
@@ -106,7 +106,7 @@ func (t Task) AddTask(c *gin.Context) {
 	}
 }
 
-func (t Task) DeleteTask(c *gin.Context) {
+func (t Task) Delete(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 
 	if err != nil {

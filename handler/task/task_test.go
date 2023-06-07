@@ -37,7 +37,7 @@ func TestDisplayTasks(t *testing.T) {
 		rr := httptest.NewRecorder()
 		//creating a fake server and context
 		c, router := gin.CreateTestContext(rr)
-		router.GET("/tasks/:id", taskrepository.DisplayTasks)
+		router.GET("/tasks/:id", taskrepository.Get)
 		var err error
 		c.Request, err = http.NewRequest(http.MethodGet, "/tasks/5", nil)
 		assert.NoError(t, err)
@@ -60,7 +60,7 @@ func TestDisplayTasks(t *testing.T) {
 		// a response recorder for getting written http response
 		rr := httptest.NewRecorder()
 		c, router := gin.CreateTestContext(rr)
-		router.GET("/tasks/:id", taskrepository.DisplayTasks)
+		router.GET("/tasks/:id", taskrepository.Get)
 		var err error
 		c.Request, err = http.NewRequest(http.MethodGet, "/tasks/\"abc\"", nil)
 		assert.NoError(t, err)
@@ -85,7 +85,7 @@ func TestDisplayTasks(t *testing.T) {
 
 		taskrepository := Task{mockTaskRepository}
 
-		router.GET("/tasks/:id", taskrepository.DisplayTasks)
+		router.GET("/tasks/:id", taskrepository.Get)
 
 		var err error
 		c.Request, err = http.NewRequest(http.MethodGet, "/tasks/5", nil)
@@ -110,7 +110,7 @@ func TestDisplayTasks(t *testing.T) {
 
 		//c, router := gin.CreateTestContext(rr)
 		router := gin.Default()
-		router.GET("/tasks/:id", taskrepository.DisplayTasks)
+		router.GET("/tasks/:id", taskrepository.Get)
 		var err error
 
 		Request, err := http.NewRequest(http.MethodGet, "/tasks/7", nil)
@@ -145,7 +145,7 @@ func TestAddTask(t *testing.T) {
 		taskRepository := Task{mockTaskRepository}
 		rr := httptest.NewRecorder()
 		c, router := gin.CreateTestContext(rr)
-		router.POST("/tasks", taskRepository.AddTask)
+		router.POST("/tasks", taskRepository.Create)
 
 		taskreq := entity.Task{Title: title}
 		jsonValue, _ := json.Marshal(taskreq)
@@ -179,7 +179,7 @@ func TestAddTask(t *testing.T) {
 		//var err error
 		c.Request, _ = http.NewRequest("POST", "/tasks", bytes.NewBuffer(jsonValue))
 		//assert.NoError(t, err)
-		router.POST("/tasks", taskRepository.AddTask)
+		router.POST("/tasks", taskRepository.Create)
 		router.ServeHTTP(rr, c.Request)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
@@ -252,7 +252,7 @@ func TestDelete(t *testing.T) {
 		rr := httptest.NewRecorder()
 		c, router := gin.CreateTestContext(rr)
 
-		router.DELETE("/tasks/:id", taskRepository.DeleteTask)
+		router.DELETE("/tasks/:id", taskRepository.Delete)
 		var err error
 		c.Request, err = http.NewRequest(http.MethodDelete, "/tasks/7", nil)
 		assert.NoError(t, err)

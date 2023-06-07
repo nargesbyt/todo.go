@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/nargesbyt/todo.go/database"
 	"github.com/nargesbyt/todo.go/entity"
@@ -12,6 +13,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
+	"github.com/spf13/viper"
 	"net/http"
 	"os"
 	"strings"
@@ -73,6 +75,11 @@ func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tok
 				if t.Active == 0 {
 					break
 				}
+				if t.ExpiredAt.Valid {
+					if t.ExpiredAt.Time.Before(time.Now()) {
+						break
+					}
+				}
 
 				verifiedToken = t
 				break
@@ -80,6 +87,7 @@ func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tok
 
 			if verifiedToken == nil {
 				c.AbortWithStatus(http.StatusUnauthorized)
+				log.Fatal().Err(errors.New("token is expired")).Msg("token is expired")
 
 				return
 			}
@@ -92,6 +100,7 @@ func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tok
 
 			c.Set("userId", userEntity.ID)
 			c.Next()
+			return
 		}
 
 		if err := userEntity.CheckPassword(splitedUserPass[1]); err != nil {
@@ -106,15 +115,29 @@ func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tok
 }
 
 func main() {
+	viper.SetConfigName("config")
+	viper.SetConfigType("json")
+	viper.AddConfigPath("./configs")
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Fatal().Err(err).Msg("unable to read config file")
+			return
+		} else {
+			log.Fatal().Err(err).Msg("unexpected error")
+			return
+		}
+	}
+	logLevel := viper.GetInt("log_level")
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	log.Logger = zerolog.New(os.Stderr).
-		Level(zerolog.ErrorLevel).
+		Level(zerolog.Level(logLevel)).
 		With().
 		Timestamp().
 		Caller().
 		Logger()
 
-	db, err := database.NewSqlite("todo.db")
+	dsn := viper.GetString("dsn")
+	db, err := database.NewSqlite(dsn)
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to initialize database connection")
@@ -139,25 +162,26 @@ func main() {
 	toh := token.Token{TokenRepository: tRepository}
 
 	r := gin.Default()
+	r.POST("/tasks", BasicAuth(userRepository, tRepository), th.Create)
 	r.GET("/tasks", BasicAuth(userRepository, tRepository), th.List)
-	r.GET("/tasks/:id", BasicAuth(userRepository, tRepository), th.DisplayTasks)
-	r.POST("/tasks", BasicAuth(userRepository, tRepository), th.AddTask)
+	r.GET("/tasks/:id", BasicAuth(userRepository, tRepository), th.Get)
 	r.PATCH("/tasks/:id", BasicAuth(userRepository, tRepository), th.Update)
-	r.DELETE("/tasks/:id", BasicAuth(userRepository, tRepository), th.DeleteTask)
+	r.DELETE("/tasks/:id", BasicAuth(userRepository, tRepository), th.Delete)
 
 	r.POST("/users", uh.Create)
-	r.GET("/users", uh.ListUsers)
+	r.GET("/users", uh.List)
 	r.GET("/users/:id", uh.Get)
-	r.PATCH("/users/:id", uh.UpdateUsers)
+	r.PATCH("/users/:id", uh.Update)
 	r.DELETE("/users/:id", uh.Delete)
 
 	r.POST("/tokens", BasicAuth(userRepository, tRepository), toh.Create)
-	r.GET("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Get)
 	r.GET("/tokens", BasicAuth(userRepository, tRepository), toh.List)
+	r.GET("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Get)
 	r.PATCH("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Update)
 	r.DELETE("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Delete)
 
-	err = r.Run(":8080")
+	port := viper.GetString("port")
+	err = r.Run(port)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to run HTTP server")
 	}
