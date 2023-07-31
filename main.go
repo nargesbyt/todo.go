@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"github.com/nargesbyt/todo.go/database"
 	"github.com/nargesbyt/todo.go/entity"
+	"github.com/nargesbyt/todo.go/handler/oauth"
 	"github.com/nargesbyt/todo.go/handler/task"
 	"github.com/nargesbyt/todo.go/handler/token"
 	"github.com/nargesbyt/todo.go/handler/user"
@@ -14,6 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/viper"
+	"golang.org/x/oauth2"
 	"net/http"
 	"os"
 	"strings"
@@ -96,7 +100,11 @@ func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tok
 			if verifiedToken.ExpiredAt.Valid {
 				ExpiredAt = verifiedToken.ExpiredAt.Time
 			}
-			tokensRepository.Update(verifiedToken.ID, verifiedToken.Title, ExpiredAt, time.Now(), verifiedToken.Active)
+
+			_, err = tokensRepository.Update(verifiedToken.ID, verifiedToken.Title, ExpiredAt, time.Now(), verifiedToken.Active)
+			if err != nil {
+				log.Fatal().Err(err).Msg("Unable to update the last_used column.")
+			}
 
 			c.Set("userId", userEntity.ID)
 			c.Next()
@@ -116,8 +124,7 @@ func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tok
 
 func main() {
 	viper.SetConfigName("config")
-	viper.SetConfigType("json")
-	viper.AddConfigPath("./configs")
+	viper.AddConfigPath("./")
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Fatal().Err(err).Msg("unable to read config file")
@@ -127,21 +134,48 @@ func main() {
 			return
 		}
 	}
-	logLevel := viper.GetInt("log_level")
+
+	provider, err := oidc.NewProvider(context.Background(), "https://gitlab.com")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to initialize an OIDC provider")
+		return
+	}
+
+	// Configure an OpenID Connect aware OAuth2 client.
+	oauth2Config := oauth2.Config{
+		ClientID:     viper.GetString("oauth.client_id"),
+		ClientSecret: viper.GetString("oauth.client_secret"),
+		RedirectURL:  "http://localhost:8080/oauth/callback",
+
+		// Discovery returns the OAuth2 endpoints.
+		Endpoint: provider.Endpoint(),
+
+		// "openid" is a required scope for OpenID Connect flows.
+		Scopes: []string{oidc.ScopeOpenID, "profile", "email"},
+	}
+
+	logLevel, err := zerolog.ParseLevel(viper.GetString("log.level"))
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Unable to parse log level")
+
+		return
+	}
+
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	log.Logger = zerolog.New(os.Stderr).
-		Level(zerolog.Level(logLevel)).
+		Level(logLevel).
 		With().
 		Timestamp().
 		Caller().
 		Logger()
 
-	dsn := viper.GetString("dsn")
-	db, err := database.NewSqlite(dsn)
-
+	db, err := database.NewSqlite(viper.GetString("database.dsn"))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to initialize database connection")
 	}
+
 	repo, err := repository.NewTasks(db)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to initialize the tasks repository")
@@ -157,11 +191,14 @@ func main() {
 		log.Fatal().Err(err).Msg("Unable to initialize the tokens repository")
 	}
 
+	ah := oauth.OAuth{OAuth2Config: oauth2Config}
 	th := task.Task{TasksRepository: repo}
 	uh := user.User{UsersRepository: userRepository}
 	toh := token.Token{TokenRepository: tRepository}
 
 	r := gin.Default()
+	r.GET("/oauth", ah.Get)
+
 	r.POST("/tasks", BasicAuth(userRepository, tRepository), th.Create)
 	r.GET("/tasks", BasicAuth(userRepository, tRepository), th.List)
 	r.GET("/tasks/:id", BasicAuth(userRepository, tRepository), th.Get)
@@ -180,8 +217,7 @@ func main() {
 	r.PATCH("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Update)
 	r.DELETE("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Delete)
 
-	port := viper.GetString("port")
-	err = r.Run(port)
+	err = r.Run(viper.GetString("port"))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to run HTTP server")
 	}
