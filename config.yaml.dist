@@ -1,0 +1,11 @@
+port: :8080
+
+log:
+  level: info
+
+database:
+  dsn: todo.db
+
+oauth:
+  client_id:
+  client_secret:
