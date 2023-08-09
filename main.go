@@ -163,6 +163,7 @@ func main() {
 		return
 	}
 
+
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	log.Logger = zerolog.New(os.Stderr).
 		Level(logLevel).
