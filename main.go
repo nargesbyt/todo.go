@@ -2,8 +2,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"errors"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+	"github.com/redis/go-redis/v9"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"github.com/nargesbyt/todo.go/database"
@@ -18,13 +24,11 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
-	"net/http"
-	"os"
-	"strings"
-	"time"
+	"gorm.io/gorm"
 )
 
-func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tokens) gin.HandlerFunc {
+
+func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tokens,oidcProvider *oidc.Provider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authz := c.GetHeader("Authorization")
 		if authz == "" {
@@ -39,11 +43,22 @@ func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tok
 
 			return
 		}
+		if splits[0] == "Bearer" {
+			var verifier = oidcProvider.Verifier(&oidc.Config{ClientID: viper.GetString("oauth.client_id")})
+			_, err := verifier.Verify(context.Background(), splits[1])
+			if err != nil {
+				c.AbortWithStatus(http.StatusUnauthorized)
 
+				return
+			}
+			c.Next()
+			return
+		}
 		if splits[0] != "Basic" {
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
+
 		}
 
 		userPass, err := base64.StdEncoding.DecodeString(splits[1])
@@ -135,11 +150,16 @@ func main() {
 		}
 	}
 
-	provider, err := oidc.NewProvider(context.Background(), "https://gitlab.com")
+	provider, err := oidc.NewProvider(context.Background(), "https://accounts.google.com")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to initialize an OIDC provider")
 		return
 	}
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     viper.GetString("redis.addr"),
+		Password: viper.GetString("redis.password"),
+		DB:       viper.GetInt("redis.db"),
+	})
 
 	// Configure an OpenID Connect aware OAuth2 client.
 	oauth2Config := oauth2.Config{
@@ -163,7 +183,6 @@ func main() {
 		return
 	}
 
-
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	log.Logger = zerolog.New(os.Stderr).
 		Level(logLevel).
@@ -172,9 +191,26 @@ func main() {
 		Caller().
 		Logger()
 
-	db, err := database.NewSqlite(viper.GetString("database.dsn"))
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to initialize database connection")
+	var db *gorm.DB
+
+	switch viper.GetString("database.driver") {
+	case "sqlite":
+		db, err = database.NewSqlite(viper.GetString("database.dsn"))
+		if err != nil {
+			log.Fatal().Err(err).Msg("Unable to initialize database connection")
+		}
+	case "postgres":
+		sqlDB, err := sql.Open("pgx", viper.GetString("database.dsn"))
+		if err != nil {
+			log.Fatal().Err(err).Msg("Unable to initialize database connection")
+		}
+		db, err = database.NewPostgres(sqlDB)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Unable to initialize database connection")
+		}
+	default:
+		log.Fatal().Msg("driver not found")
+
 	}
 
 	repo, err := repository.NewTasks(db)
@@ -192,19 +228,21 @@ func main() {
 		log.Fatal().Err(err).Msg("Unable to initialize the tokens repository")
 	}
 
-	ah := oauth.OAuth{OAuth2Config: oauth2Config}
+	ah := oauth.OAuth{OAuth2Config: oauth2Config,RedisClient: redisClient}
+	
 	th := task.Task{TasksRepository: repo}
 	uh := user.User{UsersRepository: userRepository}
 	toh := token.Token{TokenRepository: tRepository}
 
 	r := gin.Default()
 	r.GET("/oauth", ah.Get)
+	r.GET("/oauth/callback", ah.Callback)
 
-	r.POST("/tasks", BasicAuth(userRepository, tRepository), th.Create)
-	r.GET("/tasks", BasicAuth(userRepository, tRepository), th.List)
-	r.GET("/tasks/:id", BasicAuth(userRepository, tRepository), th.Get)
-	r.PATCH("/tasks/:id", BasicAuth(userRepository, tRepository), th.Update)
-	r.DELETE("/tasks/:id", BasicAuth(userRepository, tRepository), th.Delete)
+	r.POST("/tasks", BasicAuth(userRepository, tRepository,provider), th.Create)
+	r.GET("/tasks", BasicAuth(userRepository, tRepository,provider), th.List)
+	r.GET("/tasks/:id", BasicAuth(userRepository, tRepository,provider), th.Get)
+	r.PATCH("/tasks/:id", BasicAuth(userRepository, tRepository,provider), th.Update)
+	r.DELETE("/tasks/:id", BasicAuth(userRepository, tRepository,provider), th.Delete)
 
 	r.POST("/users", uh.Create)
 	r.GET("/users", uh.List)
@@ -212,11 +250,11 @@ func main() {
 	r.PATCH("/users/:id", uh.Update)
 	r.DELETE("/users/:id", uh.Delete)
 
-	r.POST("/tokens", BasicAuth(userRepository, tRepository), toh.Create)
-	r.GET("/tokens", BasicAuth(userRepository, tRepository), toh.List)
-	r.GET("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Get)
-	r.PATCH("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Update)
-	r.DELETE("/tokens/:id", BasicAuth(userRepository, tRepository), toh.Delete)
+	r.POST("/tokens", BasicAuth(userRepository, tRepository,provider), toh.Create)
+	r.GET("/tokens", BasicAuth(userRepository, tRepository,provider), toh.List)
+	r.GET("/tokens/:id", BasicAuth(userRepository, tRepository,provider), toh.Get)
+	r.PATCH("/tokens/:id", BasicAuth(userRepository, tRepository,provider), toh.Update)
+	r.DELETE("/tokens/:id", BasicAuth(userRepository, tRepository,provider), toh.Delete)
 
 	err = r.Run(viper.GetString("port"))
 	if err != nil {

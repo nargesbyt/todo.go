@@ -4,8 +4,20 @@ services:
   database:
     image: postgres:15.3-bookworm
     ports:
-      - "5432:5432"
+        - "5432:5432"  
     environment:
       POSTGRES_DB: todo
       POSTGRES_USER: todo
-      POSTGRES_PASSWORD: secret
+      POSTGRES_PASSWORD: secret  
+  redis:
+    image: redis:7.2.0-bookworm  
+    ports:
+      - "6379:6379"
+  todo:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
