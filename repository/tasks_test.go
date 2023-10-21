@@ -48,7 +48,7 @@ func (s *Suite) SetupSuite() {
 	s.tasks, _ = NewTasks(s.DB)
 
 }
-func (s *Suite) TestDisplayTask() {
+func (s *Suite) TestGet() {
 	expectedTask := entity.Task{
 		ID:        11,
 		Title:     "New task",
@@ -59,7 +59,7 @@ func (s *Suite) TestDisplayTask() {
 		WithArgs(expectedTask.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "status", "created_at", "finished_at"}).
 			AddRow(expectedTask.ID, expectedTask.Title, expectedTask.Status, expectedTask.CreatedAt, nil))
-	_, err := s.tasks.DisplayTask(expectedTask.ID)
+	_, err := s.tasks.Get(expectedTask.ID)
 
 	require.NoError(s.T(), err)
 	//require.Nil(s.T(), deep.Equal(expectedTask, task))
@@ -73,14 +73,15 @@ func (s *Suite) TestCreate() {
 	expectedTask := entity.Task{
 		Title:  "New task",
 		Status: "pending",
+		UserID: 1,
 	}
 	s.mock.ExpectBegin()
-	s.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "tasks" ("title","status","created_at","finished_at") VALUES ($1,$2,$3,$4) RETURNING " id "`)).
-		WithArgs(expectedTask.Title, expectedTask.Status, AnyTime{}, nil).
+	s.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "tasks" ("title","status","created_at","finished_at","user_id") VALUES ($1,$2,$3,$4,$5) RETURNING " id "`)).
+		WithArgs(expectedTask.Title, expectedTask.Status, AnyTime{}, nil,expectedTask.UserID).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).
 			AddRow(1))
 	s.mock.ExpectCommit()
-	_, err := s.tasks.Create(expectedTask.Title)
+	_, err := s.tasks.Create(expectedTask.Title,expectedTask.UserID)
 	require.NoError(s.T(), err)
 	if err = s.mock.ExpectationsWereMet(); err != nil {
 		fmt.Printf("unmet expectation error: %s", err)
