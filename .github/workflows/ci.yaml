@@ -1,0 +1,12 @@
+name: todo-ci
+run-name: Todo CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '^1.18.0'
+      - run: go test ./...
