@@ -10,3 +10,15 @@ jobs:
         with:
           go-version: '^1.18.0'
       - run: go test ./...
+  build:
+    steps:
+      run: go build -v ./..
+  build_dockerfile:
+    steps:
+      -name: import repo
+      uses: docker://debian:bookworm
+      run: docker build -t todo:latest -f ./Dockerfile.dev .
+  
+    
+      
+      
