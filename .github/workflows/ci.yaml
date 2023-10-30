@@ -20,10 +20,12 @@ jobs:
           go-version: '^1.18.0'
       #- run: go test ./...
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - run: go build -o todo main.go
   docker:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU
