@@ -1,7 +1,7 @@
 FROM gcr.io/distroless/static-debian11
 
 COPY ./todo /
-COPY config.yaml /
+COPY config.yaml.dist /config.yaml
 
 EXPOSE 8080
 
