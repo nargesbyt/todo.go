@@ -25,10 +25,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: go build -o todo main.go
+      - name: Archive Production artifacts
+        uses: actions/upload-artifact@v3
+          with:
+            name: dist-without-markdown
+            path: dist
   docker:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+          with:
+            name: my-artifact
       - uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
