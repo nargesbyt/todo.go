@@ -28,8 +28,8 @@ jobs:
       - name: Archive Production artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: dist-without-markdown
-          path: dist
+          name: todo
+          path: todo
   docker:
     needs: build
     runs-on: ubuntu-latest
