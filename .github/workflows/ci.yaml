@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
       - name: Cache Go modules
         uses: actions/cache@v3
         with:
@@ -33,7 +34,6 @@ jobs:
             ${{ runner.OS }}-build-${{ env.cache-name }}-
             ${{ runner.OS }}-build-
             ${{ runner.OS }}-      
-      - uses: actions/setup-go@v4
       - run: go build -o todo main.go
       - name: Archive Production artifacts
         uses: actions/upload-artifact@v3
