@@ -24,16 +24,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      # Get values for cache paths to be used in later steps
+      - id: go-cache-paths
+        run: |
+          echo "::set-output name=go-build::$(go env GOCACHE)"
+          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+
       - name: Cache Go modules
-        uses: actions/cache@v3
+        uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-build-${{ hashFiles('**/go.sum') }}
+          path: ${{ steps.go-cache-paths.outputs.go-mod }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
 		      restore-keys: |
             ${{ runner.OS }}-build-${{ env.cache-name }}-
             ${{ runner.OS }}-build-
-            ${{ runner.OS }}-      
+            ${{ runner.OS }}-  
+      - uses: actions/setup-go@v4    
       - run: go build -o todo main.go
       - name: Archive Production artifacts
         uses: actions/upload-artifact@v3
