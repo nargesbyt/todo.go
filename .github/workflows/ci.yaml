@@ -23,7 +23,17 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      - name: Cache Go modules
+        uses: actions/cache@preview
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-build-${{ hashFiles('**/go.sum') }}
+		      restore-keys: |
+            ${{ runner.OS }}-build-${{ env.cache-name }}-
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-      
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
       - run: go build -o todo main.go
       - name: Archive Production artifacts
         uses: actions/upload-artifact@v3
