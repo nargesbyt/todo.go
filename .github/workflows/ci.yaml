@@ -31,14 +31,15 @@ jobs:
           echo "::set-output name=go-mod::$(go env GOMODCACHE)"
 
       - name: Cache Go modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ steps.go-cache-paths.outputs.go-mod }}
-          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.OS }}-go-build-${{ hashFiles('**/go.sum') }}
 		      restore-keys: |
             ${{ runner.OS }}-build-${{ env.cache-name }}-
             ${{ runner.OS }}-build-
             ${{ runner.OS }}-  
+
       - uses: actions/setup-go@v4    
       - run: go build -o todo main.go
       - name: Archive Production artifacts
