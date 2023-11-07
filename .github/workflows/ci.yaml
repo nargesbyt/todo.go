@@ -31,22 +31,23 @@ jobs:
           echo "::set-output name=go-mod::$(go env GOMODCACHE)"
 
       - name: Cache Go modules
+        id: cache-modules
         uses: actions/cache@v3
         with:
           path: ${{ steps.go-cache-paths.outputs.go-mod }}
           key: ${{ runner.OS }}-go-build-${{ hashFiles('**/go.sum') }}
 		      restore-keys: |
-            ${{ runner.OS }}-build-${{ env.cache-name }}-
-            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-go-build-${{ env.cache-name }}-
+            ${{ runner.OS }}-go-build-
             ${{ runner.OS }}-  
-
-      - uses: actions/setup-go@v4    
-      - run: go build -o todo main.go
-      - name: Archive Production artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: todo
-          path: todo
+        if: ${{ steps.cache-modules.outputs.cache-hit != 'true'}}
+        - uses: actions/setup-go@v4    
+        - run: go build -o todo main.go
+        - name: Archive Production artifacts
+          uses: actions/upload-artifact@v3
+          with:
+            name: todo
+            path: todo
   docker:
     needs: build
     runs-on: ubuntu-latest
