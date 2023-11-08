@@ -24,10 +24,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Get values for cache paths to be used in later steps
+      # echo "::set-output name=go-build::$(go env GOCACHE)"
+      # echo "::set-output name=go-mod::$(go env GOMODCACHE)"
       - id: go-cache-paths
         run: |
-          echo "::set-output name=go-build::$(go env GOCACHE)"
-          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+          echo "go-build = $(go env GOCACHE)">> $GITHUB_OUTPUT
+          echo "go-mod = $(go env GOMODCACHE)">> $GITHUB_OUTPUT
       - name: Checkout   
         uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -38,7 +40,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go-cache-paths.outputs.go-mod }}
-          key: ${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
 		      restore-keys: |
             ${{ runner.OS }}-go-build-${{ env.cache-name }}-
             ${{ runner.OS }}-go-build-
