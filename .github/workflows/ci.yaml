@@ -74,8 +74,7 @@ jobs:
         with:
           name: todo
           path: ./todo  
-      - run: ls -la  
-      - run: ls -la ./todo
+      - run: chmod a+x ./todo/todo
       - name: Build and push
         uses: docker/build-push-action@v5
         with: 
