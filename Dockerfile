@@ -6,4 +6,4 @@ COPY config.yaml.dist /config.yaml
 
 EXPOSE 8080
 
-CMD ["/todo"]
+ENTRYPOINT ["/todo"]
