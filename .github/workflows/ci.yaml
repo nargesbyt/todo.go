@@ -73,7 +73,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: todo
-          path: ./todo    
+          path: ./todo  
+      - run: ls -la  
+      - run: ls -la ./todo
       - name: Build and push
         uses: docker/build-push-action@v5
         with: 
