@@ -58,11 +58,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: todo
-          path: ./todo
       - uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -74,6 +69,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: todo
+          path: todo    
       - name: Build and push
         uses: docker/build-push-action@v5
         with: 
