@@ -11,11 +11,11 @@ var ErrUserNotFound = errors.New("user not found")
 
 type Users interface {
 	Create(email string, password string, username string) (entity.User, error)
-	GetUsers(email string, username string) ([]*entity.User, error)
-	GetUserByID(userID int64) (entity.User, error)
+	Find(email string, username string) ([]*entity.User, error)
+	Get(userID int64) (entity.User, error)
 	GetUserByUsername(username string) (entity.User, error)
-	UpdateUsers(id int64, username string, email string, password string) (entity.User, error)
-	DeleteUsers(id int64) error
+	Update(id int64, username string, email string, password string) (entity.User, error)
+	Delete(id int64) error
 	//UpdatePassword( userID string, password string, tokenHash string) error
 }
 
@@ -50,7 +50,7 @@ func (u *users) Create(email string, password string, username string) (entity.U
 	}
 	return user, nil
 }
-func (u *users) GetUsers(email string, username string) ([]*entity.User, error) {
+func (u *users) Find(email string, username string) ([]*entity.User, error) {
 	var user []*entity.User
 	tx := u.db.Preload("Tasks").Where(&entity.User{Email: email, Username: username}).Find(&user)
 	if tx.Error != nil {
@@ -63,7 +63,7 @@ func (u *users) GetUsers(email string, username string) ([]*entity.User, error) 
 
 }
 
-func (u *users) GetUserByID(userID int64) (entity.User, error) {
+func (u *users) Get(userID int64) (entity.User, error) {
 	var user entity.User
 	tx := u.db.Preload("Tasks").First(&user, userID)
 	if tx.Error != nil {
@@ -86,7 +86,7 @@ func (u *users) GetUserByUsername(username string) (entity.User, error) {
 	return user, nil
 }
 
-func (u *users) UpdateUsers(id int64, username string, email string, password string) (entity.User, error) {
+func (u *users) Update(id int64, username string, email string, password string) (entity.User, error) {
 	user := entity.User{}
 	u.db.First(&user, id)
 	user.Password = password
@@ -99,7 +99,7 @@ func (u *users) UpdateUsers(id int64, username string, email string, password st
 	return user, nil
 }
 
-func (u *users) DeleteUsers(id int64) error {
+func (u *users) Delete(id int64) error {
 	tx := u.db.Delete(&entity.User{}, id)
 	if tx.Error != nil {
 		return tx.Error
