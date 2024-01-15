@@ -12,7 +12,7 @@ type User struct {
 	Username  string `gorm:"unique"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Tasks     []Task
+	Tasks     []Task `gorm:"foreignKey:UserID,constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 func (user *User) HashPassword() error {
