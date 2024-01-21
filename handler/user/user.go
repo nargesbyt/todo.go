@@ -28,8 +28,7 @@ func (u User) Create(c *gin.Context) {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		logger := zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
 		logger.Error().Stack().Err(err).Msg("can not read body request")
-		//log.Error().Err(err).Msg("can not read body request")
-		//log.Println(err)
+		
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 
@@ -41,36 +40,35 @@ func (u User) Create(c *gin.Context) {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		logger := zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
 		logger.Error().Stack().Err(err).Msg("can not save new user in repository")
-		//log.Error().Err(err).Msg("new user can not save in repository")
-		//log.Println(err)
+
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	c.Header("Content-Type", jsonapi.MediaType)
 	if err := jsonapi.MarshalPayload(c.Writer, &createResponse); err != nil {
 		log.Fatal().Err(err).Msg("cannot write response")
-		//log.Fatal(err)
+		
 	}
 	//c.JSON(http.StatusCreated, user)
 
 }
+
+
 func (u User) List(c *gin.Context) {
-	users, err := u.UsersRepository.GetUsers(c.Query("email"), c.Query("username"))
+	users, err := u.UsersRepository.Find(c.Query("email"), c.Query("username"))
 	if err != nil {
 		if err == repository.ErrUserNotFound {
 			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 			logger := zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
 			logger.Error().Stack().Err(err).Msg("user not found")
-			//log.Error().Err(err).Msg("user not found")
-			//log.Println(err)
+			
 			c.AbortWithStatusJSON(http.StatusNotFound, handler.NewProblem(http.StatusNotFound, "User not found"))
 			return
 		}
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		logger := zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
 		logger.Error().Stack().Err(err).Msg("internal server error")
-		//log.Error().Err(err).Msg("internal server error")
-		//log.Println(err)
+		
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 
@@ -88,14 +86,15 @@ func (u User) List(c *gin.Context) {
 	}
 	//c.JSON(http.StatusOK, user)
 }
+
+
 func (u User) Update(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		logger := zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
 		logger.Error().Stack().Err(err).Msg("can not convert string to int")
-		//log.Error().Err(err).Msg("can not convert string to integer")
-		//log.Println(err)
+
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
@@ -104,19 +103,17 @@ func (u User) Update(c *gin.Context) {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		logger := zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
 		logger.Error().Stack().Err(err).Msg("can not read request body")
-		//log.Error().Err(err).Msg("can not read request body")
-		//log.Println(err)
+		
 		c.AbortWithStatus(http.StatusUnprocessableEntity)
 		return
 	}
 	resp := dto.User{}
-	updateResult, err := u.UsersRepository.UpdateUsers(id, uRequest.Username, uRequest.Email, uRequest.Password)
+	updateResult, err := u.UsersRepository.Update(id, uRequest.Username, uRequest.Email, uRequest.Password)
 	if err != nil {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		logger := zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
 		logger.Error().Stack().Err(err).Msg("can not save changes to repository")
-		//log.Error().Err(err).Msg("can not save changes in repositort")
-		//log.Println(err)
+	
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 	resp.FromEntity(updateResult)
@@ -126,20 +123,21 @@ func (u User) Update(c *gin.Context) {
 	}
 	//c.JSON(http.StatusOK, resp)
 }
+
+
 func (u User) Delete(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	err = u.UsersRepository.DeleteUsers(id)
+	err = u.UsersRepository.Delete(id)
 	if err != nil {
 		if err == repository.ErrTaskNotFound {
 			zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 			logger := zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
 			logger.Error().Stack().Err(err).Msg("user not found")
-			//log.Error().Err(err).Msg("user not found")
-			//log.Println(err)
+			
 			c.AbortWithStatusJSON(http.StatusNotFound, handler.NewProblem(http.StatusNotFound, "User not found"))
 			return
 		}
@@ -149,13 +147,15 @@ func (u User) Delete(c *gin.Context) {
 	c.Status(http.StatusAccepted)
 
 }
+
+
 func (u User) Get(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, handler.NewProblem(http.StatusBadRequest, "invalid user id"))
 		return
 	}
-	user, err := u.UsersRepository.GetUserByID(id)
+	user, err := u.UsersRepository.Get(id)
 
 	if err != nil {
 		if err == repository.ErrUserNotFound {
@@ -169,7 +169,7 @@ func (u User) Get(c *gin.Context) {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		logger := zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
 		logger.Error().Stack().Err(err).Msg("internal server error")
-		//log.Println(err)
+		
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}

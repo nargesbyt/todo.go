@@ -2,9 +2,10 @@ package repository
 
 import (
 	"errors"
+	"time"
+
 	"github.com/nargesbyt/todo.go/entity"
 	"gorm.io/gorm"
-	"time"
 )
 
 var ErrTaskNotFound = errors.New("task not found")
@@ -25,10 +26,10 @@ type tasks struct {
 func NewTasks(db *gorm.DB) (Tasks, error) {
 	t := &tasks{db: db}
 
-	err := db.AutoMigrate(&entity.Task{})
+	/*err := db.AutoMigrate(&entity.Task{})
 	if err != nil {
 		return nil, err
-	}
+	}*/
 
 	return t, nil
 }
@@ -47,6 +48,7 @@ func (t *tasks) Create(title string, userId int64) (entity.Task, error) {
 		User:      user,
 	}
 	tx = t.db.Create(&task).Preload("User")
+	//tx = t.db.Create(&task)
 	if tx.Error != nil {
 		return task, tx.Error
 	}
