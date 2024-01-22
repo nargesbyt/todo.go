@@ -90,12 +90,12 @@ func (s *Suite) TestCreate() {
 }
 
 func (s *Suite) TestFind() {
-	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "tasks" WHERE "tasks"."title" = $1 AND "tasks"."status" = $2`)).
-		WithArgs("New task", "pending").
-		WillReturnRows(sqlmock.NewRows([]string{"title", "status", "created_at", "finished_at"}).
-			AddRow("New task", "pending", nil, nil))
+	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "tasks" WHERE "tasks"."title" = $1 AND "tasks"."status" = $2 AND "tasks"."userId" = $3 `)).
+		WithArgs("New task", "pending",1).
+		WillReturnRows(sqlmock.NewRows([]string{"title", "status", "created_at", "finished_at","userId"}).
+			AddRow("New task", "pending", nil, nil,1))
 
-	_, err := s.tasks.Find("New task", "pending")
+	_, err := s.tasks.Find("New task", "pending",1,1,4)
 	//assert.Equal(t, expected, task)
 	require.NoError(s.T(), err)
 	if err = s.mock.ExpectationsWereMet(); err != nil {
