@@ -2,12 +2,12 @@ package oauth
 
 import (
 	"context"
-	"net/http"
-	"time"
 	"github.com/gin-gonic/gin"
 	"github.com/nargesbyt/todo.go/internal/random"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/oauth2"
+	"net/http"
+	"time"
 )
 
 const stateKeyPrefix = "oidc:state:"

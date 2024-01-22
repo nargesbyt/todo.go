@@ -77,11 +77,11 @@ func (s *Suite) TestCreate() {
 	}
 	s.mock.ExpectBegin()
 	s.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "tasks" ("title","status","created_at","finished_at","user_id") VALUES ($1,$2,$3,$4,$5) RETURNING " id "`)).
-		WithArgs(expectedTask.Title, expectedTask.Status, AnyTime{}, nil,expectedTask.UserID).
+		WithArgs(expectedTask.Title, expectedTask.Status, AnyTime{}, nil, expectedTask.UserID).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).
 			AddRow(1))
 	s.mock.ExpectCommit()
-	_, err := s.tasks.Create(expectedTask.Title,expectedTask.UserID)
+	_, err := s.tasks.Create(expectedTask.Title, expectedTask.UserID)
 	require.NoError(s.T(), err)
 	if err = s.mock.ExpectationsWereMet(); err != nil {
 		fmt.Printf("unmet expectation error: %s", err)
