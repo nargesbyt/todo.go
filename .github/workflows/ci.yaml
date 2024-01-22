@@ -31,8 +31,8 @@ jobs:
 
     - name: revive
       run: |
-        go install github.com/mgechev/revive@v1.1.4
-        make check-revive
+        go install github.com/mgechev/revive@latest
+        revive -config ./revive.toml
 
   test:
     runs-on: ubuntu-latest
