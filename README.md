@@ -1,5 +1,5 @@
 # Todo
-[![Go Report Card](https://goreportcard.com/badge/github.com/nargesbyt/todo)](https://goreportcard.com/report/github.com/nargesbyt/todo)
+[![Go Report Card](https://goreportcard.com/badge/github.com/nargesbyt/todo.go)](https://goreportcard.com/report/github.com/nargesbyt/todo.go)
 
 ## Description
 Todo is a REST API server that provides a task management service for you so that each user can define tasks.each task has status field
