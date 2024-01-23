@@ -18,8 +18,8 @@ func (m *MockTaskRepository) Get(id int64) (entity.Task, error) {
 	return args.Get(0).(entity.Task), args.Error(1)
 
 }
-func (m *MockTaskRepository) Find(title string, status string,userId int64, page int, limit int) ([]*entity.Task, error){
-	args := m.Called(title, status,userId,page,limit)
+func (m *MockTaskRepository) Find(title string, status string, userId int64, page int, limit int) ([]*entity.Task, error) {
+	args := m.Called(title, status, userId, page, limit)
 	return args.Get(0).([]*entity.Task), args.Error(1)
 
 }
