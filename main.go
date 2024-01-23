@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 )
-
+//BasicAuth authenticates users that want to send a request to server
 func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tokens, oidcProvider *oidc.Provider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authz := c.GetHeader("Authorization")
@@ -143,10 +143,10 @@ func main() {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Fatal().Err(err).Msg("unable to read config file")
 			return
-		} else {
-			log.Fatal().Err(err).Msg("unexpected error")
-			return
-		}
+		} 
+		log.Fatal().Err(err).Msg("unexpected error")
+		return
+	
 	}
 
 	provider, err := oidc.NewProvider(context.Background(), "https://accounts.google.com")
