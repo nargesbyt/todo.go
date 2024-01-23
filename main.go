@@ -5,11 +5,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
-	"net/http"
-	"os"
-	"strings"
-	"time"
-	"github.com/redis/go-redis/v9"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"github.com/nargesbyt/todo.go/database"
@@ -19,16 +14,21 @@ import (
 	"github.com/nargesbyt/todo.go/handler/token"
 	"github.com/nargesbyt/todo.go/handler/user"
 	"github.com/nargesbyt/todo.go/repository"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
+	"net/http"
+	"os"
+	"strings"
+	"time"
 )
 
-
-func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tokens,oidcProvider *oidc.Provider) gin.HandlerFunc {
+// BasicAuth authenticates users that want to send a request to server
+func BasicAuth(usersRepository repository.Users, tokensRepository repository.Tokens, oidcProvider *oidc.Provider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authz := c.GetHeader("Authorization")
 		if authz == "" {
@@ -144,10 +144,10 @@ func main() {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Fatal().Err(err).Msg("unable to read config file")
 			return
-		} else {
-			log.Fatal().Err(err).Msg("unexpected error")
-			return
 		}
+		log.Fatal().Err(err).Msg("unexpected error")
+		return
+
 	}
 
 	provider, err := oidc.NewProvider(context.Background(), "https://accounts.google.com")
@@ -228,8 +228,8 @@ func main() {
 		log.Fatal().Err(err).Msg("Unable to initialize the tokens repository")
 	}
 
-	ah := oauth.OAuth{OAuth2Config: oauth2Config,RedisClient: redisClient}
-	
+	ah := oauth.OAuth{OAuth2Config: oauth2Config, RedisClient: redisClient}
+
 	th := task.Task{TasksRepository: repo}
 	uh := user.User{UsersRepository: userRepository}
 	toh := token.Token{TokenRepository: tRepository}
@@ -238,11 +238,11 @@ func main() {
 	r.GET("/oauth", ah.Get)
 	r.GET("/oauth/callback", ah.Callback)
 
-	r.POST("/tasks", BasicAuth(userRepository, tRepository,provider), th.Create)
-	r.GET("/tasks", BasicAuth(userRepository, tRepository,provider), th.List)
-	r.GET("/tasks/:id", BasicAuth(userRepository, tRepository,provider), th.Get)
-	r.PATCH("/tasks/:id", BasicAuth(userRepository, tRepository,provider), th.Update)
-	r.DELETE("/tasks/:id", BasicAuth(userRepository, tRepository,provider), th.Delete)
+	r.POST("/tasks", BasicAuth(userRepository, tRepository, provider), th.Create)
+	r.GET("/tasks", BasicAuth(userRepository, tRepository, provider), th.List)
+	r.GET("/tasks/:id", BasicAuth(userRepository, tRepository, provider), th.Get)
+	r.PATCH("/tasks/:id", BasicAuth(userRepository, tRepository, provider), th.Update)
+	r.DELETE("/tasks/:id", BasicAuth(userRepository, tRepository, provider), th.Delete)
 
 	r.POST("/users", uh.Create)
 	r.GET("/users", uh.List)
@@ -250,11 +250,11 @@ func main() {
 	r.PATCH("/users/:id", uh.Update)
 	r.DELETE("/users/:id", uh.Delete)
 
-	r.POST("/tokens", BasicAuth(userRepository, tRepository,provider), toh.Create)
-	r.GET("/tokens", BasicAuth(userRepository, tRepository,provider), toh.List)
-	r.GET("/tokens/:id", BasicAuth(userRepository, tRepository,provider), toh.Get)
-	r.PATCH("/tokens/:id", BasicAuth(userRepository, tRepository,provider), toh.Update)
-	r.DELETE("/tokens/:id", BasicAuth(userRepository, tRepository,provider), toh.Delete)
+	r.POST("/tokens", BasicAuth(userRepository, tRepository, provider), toh.Create)
+	r.GET("/tokens", BasicAuth(userRepository, tRepository, provider), toh.List)
+	r.GET("/tokens/:id", BasicAuth(userRepository, tRepository, provider), toh.Get)
+	r.PATCH("/tokens/:id", BasicAuth(userRepository, tRepository, provider), toh.Update)
+	r.DELETE("/tokens/:id", BasicAuth(userRepository, tRepository, provider), toh.Delete)
 
 	err = r.Run(viper.GetString("port"))
 	if err != nil {

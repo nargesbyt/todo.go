@@ -268,6 +268,9 @@ func TestFind(t *testing.T) {
 		var title1 string = "task1"
 		//var title2 string = "task two"
 		var status string = "pending"
+		var userId int64 = 1
+		var page int = 1
+		var limit int = 1
 		mockTaskResponse := []entity.Task{
 			{
 				Title:  title1,
@@ -275,7 +278,7 @@ func TestFind(t *testing.T) {
 			},
 		}
 		mockTaskRepository := new(repository.MockTaskRepository)
-		mockTaskRepository.On("Find", title1, status).Return(mockTaskResponse, nil)
+		mockTaskRepository.On("Find", title1, status, userId, page, limit).Return(mockTaskResponse, nil)
 
 		task := Task{mockTaskRepository}
 		rr := httptest.NewRecorder()

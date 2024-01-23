@@ -152,6 +152,10 @@ func (t Task) Delete(c *gin.Context) {
 
 func (t Task) Update(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
 	task, err := t.TasksRepository.Get(id)
 	if err != nil {
 		if err == repository.ErrTaskNotFound {
