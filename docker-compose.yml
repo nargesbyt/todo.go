@@ -13,11 +13,11 @@ services:
     image: redis:7.2.0-bookworm  
     ports:
       - "6379:6379"
-  todo:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    ports:
-      - "8080:8080"
-    depends_on:
-      - database
+  #todo:
+    #build:
+      #context: .
+      #dockerfile: Dockerfile.dev
+    #ports:
+      #- "8080:8080"
+    #depends_on:
+      #- database

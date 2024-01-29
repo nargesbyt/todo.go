@@ -24,29 +24,23 @@ type tasks struct {
 
 func NewTasks(db *gorm.DB) (Tasks, error) {
 	t := &tasks{db: db}
-
-	err := db.AutoMigrate(&entity.Task{})
-	if err != nil {
-		return nil, err
-	}
-
 	return t, nil
 }
 
 func (t *tasks) Create(title string, userId int64) (entity.Task, error) {
-	user := entity.User{}
+	/*user := entity.User{}
 	tx := t.db.First(&user, userId)
 	if tx.Error != nil {
 		return entity.Task{}, tx.Error
-	}
+	}*/
 	task := entity.Task{
 		Title:     title,
 		Status:    "pending",
 		CreatedAt: time.Now(),
 		UserID:    userId,
-		User:      user,
+		//User:      user,
 	}
-	tx = t.db.Create(&task).Preload("User")
+	tx := t.db.Create(&task).Preload("User")
 	if tx.Error != nil {
 		return task, tx.Error
 	}
@@ -68,12 +62,7 @@ func (t *tasks) Get(id int64) (entity.Task, error) {
 
 func (t *tasks) Find(title string, status string, userId int64, page int, limit int) ([]*entity.Task, error) {
 	var tasks []*entity.Task
-	var totalRows int64
-	tx := t.db.Model(&entity.Task{Title: title, Status: status, UserID: userId}).Count(&totalRows)
-	if tx.Error != nil {
-		return nil, tx.Error
-	}
-	tx = t.db.Preload("User").Where(&entity.Task{Title: title, Status: status, UserID: userId}).Offset((page - 1) * limit).Limit(limit).Find(&tasks)
+	tx := t.db.Preload("User").Where(&entity.Task{Title: title, Status: status, UserID: userId}).Offset((page - 1) * limit).Limit(limit).Find(&tasks)
 	if tx.Error != nil {
 		return tasks, tx.Error
 
@@ -84,9 +73,9 @@ func (t *tasks) Find(title string, status string, userId int64, page int, limit 
 func (t *tasks) Update(id int64, title string, status string) (entity.Task, error) {
 	task := entity.Task{}
 	t.db.First(&task, id)
-	task.Title = title
-	task.Status = status
-	tx := t.db.Save(&task)
+	//task.Title = title
+	//task.Status = status
+	tx := t.db.Model(&task).Updates(entity.Task{Title: title,Status: status})
 	if tx.Error != nil {
 		return task, nil
 	}
