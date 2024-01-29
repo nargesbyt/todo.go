@@ -25,12 +25,6 @@ type users struct {
 
 func NewUsers(db *gorm.DB) (Users, error) {
 	u := &users{db: db}
-
-	err := db.AutoMigrate(&entity.User{})
-	if err != nil {
-		return nil, err
-	}
-
 	return u, nil
 }
 func (u *users) Create(email string, password string, username string) (entity.User, error) {

@@ -7,7 +7,7 @@ that shows the state of task for example pending,in progress,finished,....
 There is an authentication system that prevents users who doesn't sign in in service create or retrieve tasks.
 
 
-##Features
+## Features
 **`Todo`** supports:
 - http,https protocol
 - Postgres,sqlite3,Mysql databases
@@ -21,7 +21,7 @@ There is an authentication system that prevents users who doesn't sign in in ser
 ### Docker images
 
 Docker images are available on [Docker Hub](https://hub.docker.com/repository/docker/nargesbyt/todo/general).
-You can launch a Todo containerfor trying it out with
+You can launch a Todo container for trying it out with
 
 ```bash
 docker run --name todo -d -p 127.0.0.1:8080:8080 todo

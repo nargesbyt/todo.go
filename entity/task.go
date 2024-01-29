@@ -28,5 +28,5 @@ type Task struct {
 	CreatedAt  time.Time `gorm:"autoCreateTime"`
 	FinishedAt sql.NullTime
 	UserID     int64 `gorm:"column:user_id;foreignKey"`
-	User       User
+	User       User 
 }
