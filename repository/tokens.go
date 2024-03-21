@@ -26,11 +26,7 @@ type tokens struct {
 
 func NewTokens(db *gorm.DB) (Tokens, error) {
 	token := &tokens{db: db}
-	/*err := db.AutoMigrate(&entity.Token{})
-	if err != nil {
-		return nil, err
-	}*/
-
+	
 	return token, nil
 }
 
@@ -85,12 +81,12 @@ func (t *tokens) Get(id int64) (entity.Token, error) {
 
 func (t *tokens) List(title string, userId int64) ([]*entity.Token, error) {
 	var tokensList []*entity.Token
-	var totalRows int64
-	tx := t.db.Model(&entity.Task{Title: title, UserID: userId}).Count(&totalRows)
+	//var totalRows int64
+	/*tx := t.db.Model(&entity.Task{Title: title, UserID: userId}).Count(&totalRows)
 	if tx.Error != nil {
 		return nil, tx.Error
-	}
-	tx = t.db.Where(&entity.Token{Title: title, UserID: userId}).Find(&tokensList)
+	}*/
+	tx := t.db.Where(&entity.Token{Title: title, UserID: userId}).Find(&tokensList)
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {
 			return nil, ErrTokenNotFound
@@ -133,12 +129,12 @@ func (t *tokens) Update(id int64, title string, expiresAt time.Time, lastUsed ti
 		return token, err
 	}
 
-	token.ExpiredAt = expireTime
+	/*token.ExpiredAt = expireTime
 	token.Title = title
 	token.LastUsed = lastUsedTime
 	token.Active = active
-
-	tx := t.db.Save(&token)
+	tx := t.db.Save(&token)*/
+	tx := t.db.Model(&token).Updates(entity.Token{Title: title,ExpiredAt: expireTime,LastUsed: lastUsedTime,Active: active})
 	if tx.Error != nil {
 		return token, tx.Error
 	}

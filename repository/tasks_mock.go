@@ -10,7 +10,7 @@ type MockTaskRepository struct {
 }
 
 func (m *MockTaskRepository) Create(title string, userId int64) (entity.Task, error) {
-	args := m.Called(title)
+	args := m.Called(title, userId)
 	return args.Get(0).(entity.Task), args.Error(1)
 }
 func (m *MockTaskRepository) Get(id int64) (entity.Task, error) {

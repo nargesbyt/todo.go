@@ -73,14 +73,13 @@ func (t *tasks) Find(title string, status string, userId int64, page int, limit 
 func (t *tasks) Update(id int64, title string, status string) (entity.Task, error) {
 	task := entity.Task{}
 	t.db.First(&task, id)
-	//task.Title = title
-	//task.Status = status
-	tx := t.db.Model(&task).Updates(entity.Task{Title: title,Status: status})
-	if tx.Error != nil {
-		return task, nil
-	}
-	return task, nil
 
+	tx := t.db.Model(&task).Updates(entity.Task{Title: title, Status: status})
+	if tx.Error != nil {
+		return task, tx.Error
+	}
+
+	return task, nil
 }
 
 func (t *tasks) Delete(id int64) error {

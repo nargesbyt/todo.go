@@ -25,7 +25,7 @@ func (a AnyTime) Match(v driver.Value) bool {
 	return ok
 }
 
-type Suite struct {
+type TaskSuite struct {
 	suite.Suite
 	DB    *gorm.DB
 	mock  sqlmock.Sqlmock
@@ -33,17 +33,14 @@ type Suite struct {
 	users Users
 }
 
-func (s *Suite) SetupSuite() {
+func (s *TaskSuite) SetupTest() {
 	var (
 		db  *sql.DB
 		err error
 	)
     db, s.mock, err = sqlmock.New()
-	if err != nil {
-		fmt.Println("error creating mock database")
-		return
-	}
-	require.NoError(s.T(), err)
+	s.Require().NoError(err)
+
 	//s.DB,err =database.NewSqlite("todo")
 	s.DB, err = database.NewPostgres(db)
 	//s.DB, err = gorm.Open("postgres", db)
@@ -53,7 +50,7 @@ func (s *Suite) SetupSuite() {
 	s.users, _ = NewUsers(s.DB)
 
 }
-func (s *Suite) TestGet() {
+func (s *TaskSuite) TestGet() {
 	expectedTask := entity.Task{
 		ID:        1,
 		Title:     "New task",
@@ -73,37 +70,27 @@ func (s *Suite) TestGet() {
 		AddRow(1,"ali","ali@yahoo.com"))
 	
 	_, err := s.tasks.Get(expectedTask.ID)
-
-	require.NoError(s.T(), err)
-	//require.Nil(s.T(), deep.Equal(expectedTask, task))
-	if err = s.mock.ExpectationsWereMet(); err != nil {
-		fmt.Printf("unmet expectation error: %s", err)
-	}
-
+	s.Require().NoError(err)
+	s.Require().NoError(s.mock.ExpectationsWereMet())
 }
 
-func (s *Suite) TestCreate() {
+func (s *TaskSuite) TestCreate() {
 	expectedTask := entity.Task{
 		ID: 1,
 		Title:  "New task",
 		Status: "pending",
 		UserID: 1,
 	}
-	/*expectedUser := entity.User{
-		ID: 1,
-		Username: "ali",
-		Email: "ali@gmail.com",
-	}
-	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE "users"."id" = $1 ORDER BY "users"."id" LIMIT 1`)).
-		WithArgs(expectedUser.ID).WillReturnRows(sqlmock.NewRows([]string{"id","username","email"}).
-		AddRow(expectedUser.ID,expectedUser.Username,expectedUser.Email))*/
-
 	s.mock.ExpectBegin()
-	s.mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "tasks" ("title","status","created_at","finished_at","user_id") VALUES ($1,$2,$3,$4,$5) RETURNING "id"`)).
-		WithArgs(expectedTask.Title, expectedTask.Status,sqlmock.AnyArg, nil, expectedTask.UserID).
-		WillReturnResult(sqlmock.NewResult(1,1))
+	s.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "tasks" ("title","status","created_at","finished_at","user_id") VALUES ($1,$2,$3,$4,$5) RETURNING "id"`)).
+		WithArgs(expectedTask.Title,expectedTask.Status,sqlmock.AnyArg(),sqlmock.AnyArg(),expectedTask.UserID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 
 	s.mock.ExpectCommit()
+	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE "users"."id" = $1 ORDER BY "users"."id" LIMIT 1`)).
+		WithArgs(expectedTask.UserID).WillReturnRows(sqlmock.NewRows([]string{"id","username","email"}).
+		AddRow(1,"ali","ali@gmail.com"))
+
 	
 	_, err := s.tasks.Create(expectedTask.Title, expectedTask.UserID)
 	require.NoError(s.T(), err)
@@ -113,7 +100,7 @@ func (s *Suite) TestCreate() {
 
 }
 
-func (s *Suite) TestFind() {
+func (s *TaskSuite) TestFind() {
 	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "tasks" WHERE "tasks"."title" = $1 AND "tasks"."status" = $2 AND "tasks"."user_id" = $3 LIMIT 1 OFFSET 2`)).
 		WithArgs("New task", "pending", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"title", "status", "created_at", "finished_at", "user_Id"}).
@@ -127,7 +114,7 @@ func (s *Suite) TestFind() {
 	}
 }
 
-func (s *Suite) TestUpdate() {
+func (s *TaskSuite) TestUpdate() {
 	expectedTask := entity.Task{
 		ID:        1,
 		Title:     "New task",
@@ -145,7 +132,7 @@ func (s *Suite) TestUpdate() {
 
 	s.mock.ExpectCommit()
 	task, err := s.tasks.Update(expectedTask.ID, "updated task", "in progress")
-	assert.Equal(s.T(),"updated task",task.Title)
+	s.Assert().Equal("updated task", task.Title)
 	assert.Equal(s.T(),"in progress",task.Status)
 	require.NoError(s.T(), err)
 	if err = s.mock.ExpectationsWereMet(); err != nil {
@@ -153,7 +140,7 @@ func (s *Suite) TestUpdate() {
 	}
 }
 
-func (s *Suite) TestDelete() {
+func (s *TaskSuite) TestDelete() {
 	s.mock.ExpectBegin()
 	s.mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "tasks" WHERE "tasks"."id" = $1`)).
 		WithArgs(6).WillReturnResult(sqlmock.NewResult(1,1))
@@ -162,12 +149,6 @@ func (s *Suite) TestDelete() {
 	require.NoError(s.T(), err)
 }
 
-func TestSuite(t *testing.T) {
-	suite.Run(t, new(Suite))
-
+func TestTaskSuite(t *testing.T) {
+	suite.Run(t, new(TaskSuite))
 }
-
-/*func (s *Suite) AfterTest(){
-	require.NoError(s.T(), s.mock.ExpectationsWereMet())
-}*/
-
