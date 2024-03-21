@@ -1,5 +1,5 @@
 # Todo
-[![Go Report Card](https://goreportcard.com/badge/github.com/nargesbyt/todo.go)](https://goreportcard.com/report/github.com/nargesbyt/todo.go)
+[![CI](https://github.com/nargesbyt/todo.go/actions/workflows/ci.yaml/badge.svg)](https://github.com/nargesbyt/todo.go/actions/workflows/ci.yaml) [![Go Report Card](https://goreportcard.com/badge/github.com/nargesbyt/todo.go)](https://goreportcard.com/report/github.com/nargesbyt/todo.go)
 
 ## Description
 Todo is a REST API server that provides a task management service for you so that each user can define tasks.each task has status field
@@ -9,12 +9,10 @@ There is an authentication system that prevents users who doesn't sign in in ser
 
 ## Features
 **`Todo`** supports:
-- http,https protocol
-- Postgres,sqlite3,Mysql databases
+- Support varius databases: PostgreSQL, SQLite3 and MySQL
 - RESTful API
 - JSON:API Specification
-- Token based Authentication
-- Basic Authentication
+- Authentication: PAT, Basic and OIDC
 
 ## Install
 
@@ -24,7 +22,7 @@ Docker images are available on [Docker Hub](https://hub.docker.com/repository/do
 You can launch a Todo container for trying it out with
 
 ```bash
-docker run --name todo -d -p 127.0.0.1:8080:8080 todo
+docker run --name todo -d -p 127.0.0.1:8080:8080 nargesbyt/todo
 ```
 
 Todo will now be reachable at <http://localhost:8080/>.
@@ -37,13 +35,26 @@ To build Todo from source code, You need:
 Start by cloning the repository:
 
 ```bash
-git clone https://github.com/nargesbyt/todo.go.git
-cd todo
+go install https://github.com/nargesbyt/todo.go
 ```
 
 ## Contributing
 
 ## Roadmap
-we can add deadline to tasks that send notification to assigned user.
+- [] we can add deadline to tasks that send notification to assigned user.
 
 ## License
+
+Copyright 2023 Narges Bayat
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
