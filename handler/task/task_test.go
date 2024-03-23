@@ -5,19 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/google/jsonapi"
 	"github.com/nargesbyt/todo.go/entity"
 	"github.com/nargesbyt/todo.go/handler"
 	"github.com/nargesbyt/todo.go/internal/dto"
 	"github.com/nargesbyt/todo.go/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 )
 
-func TestDisplayTasks(t *testing.T) {
+func TestGet(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	t.Run("Success", func(t *testing.T) {
 		var id int64 = 5
@@ -28,28 +30,35 @@ func TestDisplayTasks(t *testing.T) {
 			Title:     "New task",
 			Status:    "pending",
 			CreatedAt: time.Now(),
+			UserID:    1,
 		}
+
 		response.FromEntity(mockTaskResp)
 		mockTaskRepository := new(repository.MockTaskRepository)
-		mockTaskRepository.On("DisplayTask", id).Return(mockTaskResp, nil)
-		taskrepository := Task{mockTaskRepository}
-		// a response recorder for getting written http response
-		rr := httptest.NewRecorder()
-		//creating a fake server and context
-		c, router := gin.CreateTestContext(rr)
-		router.GET("/tasks/:id", taskrepository.Get)
+		mockTaskRepository.On("Get", id).Return(mockTaskResp, nil)
+		taskHandler := Task{mockTaskRepository}
+
+		resp := httptest.NewRecorder()
+		gin.SetMode(gin.TestMode)
+		c, r := gin.CreateTestContext(resp)
+		r.Use(func(c *gin.Context) {
+			c.Set("userId", int64(1))
+		})
+
+		r.GET("/tasks/:id", taskHandler.Get)
+
 		var err error
 		c.Request, err = http.NewRequest(http.MethodGet, "/tasks/5", nil)
+		require.NoError(t, err)
+		r.ServeHTTP(resp, c.Request)
+
+		buf := bytes.NewBuffer(nil)
+		err = jsonapi.MarshalPayload(buf, &response)
 		assert.NoError(t, err)
 
-		router.ServeHTTP(rr, c.Request)
-
-		respBody, err := json.Marshal(response)
-		assert.NoError(t, err)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, respBody, rr.Body.Bytes())
-		mockTaskRepository.AssertExpectations(t) // assert that UserService.Get was called
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, buf.Bytes(), resp.Body.Bytes())
+		assert.True(t, mockTaskRepository.AssertExpectations(t))
 	})
 
 	t.Run("BadRequest", func(t *testing.T) {
